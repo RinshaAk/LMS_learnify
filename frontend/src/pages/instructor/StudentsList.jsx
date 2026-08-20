@@ -12,14 +12,13 @@ import {
   GraduationCap,
   Award
 } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { toast } from 'react-hot-toast';
 import { fetchInstructorStudents } from '../../features/instructor/instructorThunk';
 import { completeStudentCourse } from '../../services/instructorService';
 
 const StudentsList = () => {
-  const navigate = useNavigate();
   const dispatch = useDispatch();
   const { id: courseIdFromUrl } = useParams();
   const { students, loading } = useSelector((state) => state.instructor);

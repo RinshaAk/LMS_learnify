@@ -1,25 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  ClipboardCheck, 
-  Plus, 
-  Search, 
-  Filter, 
-  Calendar, 
-  Clock, 
-  User, 
-  BookOpen, 
-  ExternalLink, 
-  CheckCircle2, 
-  XCircle, 
-  AlertCircle, 
-  Loader2, 
-  Trash2, 
-  Award, 
+import {
+  ClipboardCheck,
+  Plus,
+  Search,
+  Filter,
+  Calendar,
+  Clock,
+  ExternalLink,
+  Loader2,
   ChevronRight,
   Sparkles,
-  Link as LinkIcon,
   X,
-  MessageSquare
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { getInstructorCourses } from '../../services/instructorService';
@@ -33,7 +24,6 @@ import {
 
 const InstructorMissions = () => {
   const [courses, setCourses] = useState([]);
-  const [selectedCourse, setSelectedCourse] = useState(null);
   const [missions, setMissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -76,8 +66,6 @@ const InstructorMissions = () => {
       setCourses(allCourses);
       
       if (allCourses && allCourses.length > 0) {
-        // Set first course as selected course to load missions
-        setSelectedCourse(allCourses[0]);
         setFilterCourseId(allCourses[0]._id);
       }
     } catch (err) {

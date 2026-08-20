@@ -9,11 +9,11 @@ import {
 } from "./authThunk";
 
 // Get initial state from localStorage if available
-const userFromStorage = localStorage.getItem("user") 
-  ? JSON.parse(localStorage.getItem("user")) 
+const userFromStorage = localStorage.getItem("user")
+  ? JSON.parse(localStorage.getItem("user"))
   : null;
-const tokenFromStorage = localStorage.getItem("token") 
-  ? localStorage.getItem("token") 
+const tokenFromStorage = localStorage.getItem("token")
+  ? localStorage.getItem("token")
   : null;
 
 const initialState = {
@@ -32,7 +32,10 @@ const authSlice = createSlice({
     logout: (state) => {
       state.user = null;
       state.isAuthenticated = false;
+      state.success = false;
+      state.error = null;
       localStorage.removeItem("token");
+      localStorage.removeItem("user");
     },
     setCredentials: (state, action) => {
       state.user = action.payload;
@@ -41,6 +44,7 @@ const authSlice = createSlice({
       if (action.payload?.token) {
         localStorage.setItem("token", action.payload.token);
       }
+      localStorage.setItem("user", JSON.stringify(action.payload));
     },
     clearState: (state) => {
       state.error = null;
@@ -62,6 +66,7 @@ const authSlice = createSlice({
         if (action.payload?.token) {
           localStorage.setItem("token", action.payload.token);
         }
+        localStorage.setItem("user", JSON.stringify(action.payload));
       })
       .addCase(registerUser.rejected, (state, action) => {
         state.loading = false;
@@ -94,6 +99,7 @@ const authSlice = createSlice({
       .addCase(fetchProfile.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload;
+        localStorage.setItem("user", JSON.stringify(action.payload));
       })
       .addCase(fetchProfile.rejected, (state, action) => {
         state.loading = false;
@@ -108,6 +114,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = action.payload;
         state.success = true;
+        localStorage.setItem("user", JSON.stringify(action.payload));
       })
       .addCase(updateProfile.rejected, (state, action) => {
         state.loading = false;

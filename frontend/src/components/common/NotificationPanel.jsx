@@ -81,7 +81,9 @@ const NotificationPanel = () => {
         prev.map((n) => (n._id === id ? { ...n, isRead: true } : n))
       );
       setUnreadCount((c) => Math.max(0, c - 1));
-    } catch {}
+    } catch (err) {
+      console.error('Failed to mark notification as read', err);
+    }
   };
 
   const markAllRead = async () => {
@@ -89,7 +91,9 @@ const NotificationPanel = () => {
       await axiosInstance.patch('/notifications/read-all');
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setUnreadCount(0);
-    } catch {}
+    } catch (err) {
+      console.error('Failed to mark all notifications as read', err);
+    }
   };
 
   const deleteNotif = async (e, id) => {
@@ -101,7 +105,9 @@ const NotificationPanel = () => {
         const wasUnread = notifications.find((n) => n._id === id && !n.isRead);
         return wasUnread ? Math.max(0, c - 1) : c;
       });
-    } catch {}
+    } catch (err) {
+      console.error('Failed to delete notification', err);
+    }
   };
 
   const handleNotifClick = (notif) => {

@@ -1,4 +1,7 @@
 import { Server } from "socket.io";
+import jwt from "jsonwebtoken";
+import { env } from "../config/env.config.js";
+import User from "../models/User.js";
 
 let io;
 const userSocketMap = {}; // { userId: socketId }
@@ -6,19 +9,38 @@ const userSocketMap = {}; // { userId: socketId }
 export const initializeSocket = (server) => {
   io = new Server(server, {
     cors: {
-      origin: "http://localhost:5173",
+      origin: env.CLIENT_URL,
       methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
       credentials: true,
     },
   });
 
+  io.use(async (socket, next) => {
+    try {
+      const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+      if (!token) {
+        return next(new Error("Authentication required"));
+      }
+
+      const decoded = jwt.verify(token, env.JWT_SECRET);
+      const user = await User.findById(decoded.id).select("_id isBlocked");
+
+      if (!user || user.isBlocked) {
+        return next(new Error("Authentication failed"));
+      }
+
+      socket.userId = user._id.toString();
+      next();
+    } catch (error) {
+      next(new Error("Authentication failed"));
+    }
+  });
+
   io.on("connection", (socket) => {
-    const userId = socket.handshake.query.userId;
+    const userId = socket.userId;
     console.log(`[Socket] Client connected. SocketID: ${socket.id}, UserID: ${userId}`);
 
-    if (userId && userId !== "undefined") {
-      userSocketMap[userId] = socket.id;
-    }
+    userSocketMap[userId] = socket.id;
 
     // Broadcast online users
     io.emit("getOnlineUsers", Object.keys(userSocketMap));
@@ -95,7 +117,7 @@ export const initializeSocket = (server) => {
 
     socket.on("disconnect", () => {
       console.log(`[Socket] Client disconnected. SocketID: ${socket.id}`);
-      if (userId && userId !== "undefined") {
+      if (userSocketMap[userId] === socket.id) {
         delete userSocketMap[userId];
       }
       io.emit("getOnlineUsers", Object.keys(userSocketMap));

@@ -47,7 +47,7 @@ const InstructorReviews = () => {
   const [submittingEval, setSubmittingEval] = useState(false);
 
   const [upcomingReviews, setUpcomingReviews] = useState([]);
-  const [loadingReviews, setLoadingReviews] = useState(false);
+  const [, setLoadingReviews] = useState(false);
 
   const fetchReviews = async () => {
     setLoadingReviews(true);

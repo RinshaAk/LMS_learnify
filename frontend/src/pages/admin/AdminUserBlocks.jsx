@@ -39,7 +39,6 @@ const AdminUserBlocks = () => {
   const handleUnblock = async (userId) => {
     try {
       // Optimistic update
-      const userToUnblock = blockedUsers.find(u => u._id === userId);
       setBlockedUsers(prev => prev.filter(u => u._id !== userId));
       
       await adminService.unblockUser(userId);

@@ -12,8 +12,6 @@ const createTransporter = () => {
   const emailUser = process.env.EMAIL_USER;
   const emailPass = process.env.EMAIL_PASS;
 
-    console.log("email",emailPass)
-    console.log("email",emailUser)
   if (!emailUser || !emailPass) {
     console.error("EMAIL_USER or EMAIL_PASS missing in environment variables");
     throw new EmailDeliveryError("Email service is not configured. Please contact support.");
@@ -26,15 +24,15 @@ const createTransporter = () => {
     auth: {
       user: emailUser,
       pass: emailPass,
-    
-      
+
+
     },
-    
-    
+
+
     tls: {
       rejectUnauthorized: false, // Bypass SSL certificate verification
     },
-    
+
   });
 };
 
@@ -43,24 +41,20 @@ export const sendEmail = async (to, subject, html) => {
     const emailUser = process.env.EMAIL_USER?.trim();
     const transporter = createTransporter();
 
-    console.log(`Attempting to send email to: ${to} from ${emailUser}`);
-    
     const info = await transporter.sendMail({
       from: `"Learnify" <${emailUser}>`,
       to,
       subject,
       html,
     });
-    
+
     console.log("Email sent successfully:", info.messageId);
     return true;
   } catch (error) {
     console.error("Email sending failed detail:", {
       message: error.message,
-      stack: error.stack,
       code: error.code,
       command: error.command,
-      response: error.response
     });
     if (error.code === 'EENVELOPE') {
       const deliveryError = new Error("The email address provided is invalid or could not be reached.");
@@ -71,10 +65,9 @@ export const sendEmail = async (to, subject, html) => {
     if (error instanceof EmailDeliveryError) {
       throw error;
     }
-    
+
     // Check for common Gmail errors
     if (error.message.includes('Invalid login') || error.message.includes('Username and Password not accepted')) {
-      console.log("error seen as",error.message)
        throw new EmailDeliveryError("Email authentication failed. Please check your App Password.");
     }
 

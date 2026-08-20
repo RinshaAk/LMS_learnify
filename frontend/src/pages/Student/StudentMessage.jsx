@@ -24,7 +24,7 @@ const InstructorMessages = () => {
   const [messages, setMessages] = useState([]);
   const [messageText, setMessageText] = useState('');
   const [loading, setLoading] = useState(true);
-  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [, setMessagesLoading] = useState(false);
   const [callInfo, setCallInfo] = useState({
     status: 'idle', // 'idle' | 'outgoing' | 'incoming' | 'ongoing'
     roomId: '',

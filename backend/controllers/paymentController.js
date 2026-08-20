@@ -12,14 +12,12 @@ export const createOrder = async (req, res) => {
       courseId: req.body.courseId,
       userId: req.user.id,
     });
-console.log("Create Order Result:", result); // Log the result for debugging
     res.status(200).json(result);
   } catch (error) {
     console.error("Create Order Error:", error);
     res.status(400).json({
       success: false,
       message: error.message,
-      error: error // Send the full error object for debugging
     });
   }
 };

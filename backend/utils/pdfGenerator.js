@@ -1,6 +1,7 @@
 import PDFDocument from "pdfkit";
 import path from "path";
 import { fileURLToPath } from "url";
+import { env } from "../config/env.config.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -223,7 +224,7 @@ export const generateCertificatePDF = (certData) => {
         .fontSize(8.5)
         .text("Scan QR code or visit:", 130, height - 110);
 
-      const verificationUrl = `http://localhost:5173/verify/${certData.certificateId}`;
+      const verificationUrl = `${env.CLIENT_URL || "http://localhost:5173"}/verify/${certData.certificateId}`;
       doc
         .font("Helvetica-Bold")
         .fillColor("#0284c7")

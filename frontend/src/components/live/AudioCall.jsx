@@ -4,7 +4,6 @@ import toast from "react-hot-toast";
 
 const AudioCall = ({
   roomId,
-  peerId,
   peerName,
   peerAvatar,
   callDirection, // 'outgoing' | 'incoming' | 'ongoing'

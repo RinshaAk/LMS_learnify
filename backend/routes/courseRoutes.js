@@ -3,6 +3,9 @@ import {
   createCourse,
   getCourses,
   getCourseById,
+  getCourseLessons,
+  getCourseReviews,
+  submitCourseReview,
   updateCourse,
   deleteCourse,
 } from "../controllers/courseController.js";
@@ -19,6 +22,10 @@ router.post("/", authMiddleware, roleMiddleware("instructor"), createCourse);
 
 // get all courses
 router.get("/", getCourses);
+
+router.get("/:id/reviews", getCourseReviews);
+router.post("/:id/reviews", authMiddleware, roleMiddleware("student"), submitCourseReview);
+router.get("/:id/lessons", optionalAuthMiddleware, getCourseLessons);
 
 // get single course
 router.get("/:id", optionalAuthMiddleware, getCourseById);

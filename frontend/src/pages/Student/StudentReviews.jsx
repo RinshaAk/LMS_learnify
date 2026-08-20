@@ -1,24 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchStudentDashboard } from '../../features/student/studentThunk';
-import { 
-  Calendar, 
-  Clock, 
-  User, 
-  BookOpen, 
-  Video, 
-  Plus, 
-  Search, 
-  Filter, 
-  ChevronRight, 
+import {
+  Calendar,
+  Clock,
+  Video,
   History,
   CheckCircle2,
-  XCircle,
-  AlertCircle,
   Loader2,
-  PlayCircle,
   Info,
-  ExternalLink,
   Trash2
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -82,8 +72,6 @@ const StudentReviews = () => {
     }
     fetchReviews();
   }, [dispatch, dashboardData]);
-
-  const enrolledCourses = dashboardData?.enrolledCourses || [];
 
   const activeReviews = upcomingReviews.filter(r => r.status === 'Scheduled' || r.status === 'Pending');
   const pastReviews = upcomingReviews.filter(r => r.status !== 'Scheduled' && r.status !== 'Pending');

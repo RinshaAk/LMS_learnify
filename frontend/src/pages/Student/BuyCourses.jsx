@@ -30,7 +30,6 @@ const BuyCourses = () => {
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [showPayment, setShowPayment] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [orderId, setOrderId] = useState("");
   const [showFailureModal, setShowFailureModal] = useState(false);
   const [failureReason, setFailureReason] = useState("");
   const [sortMode, setSortMode] = useState('all'); // 'all' | 'popular' | 'new'
@@ -220,7 +219,6 @@ const BuyCourses = () => {
 
   const handleBuyClick = (course, instructor) => {
     setSelectedCourse({ ...course, instructorName: instructor.name });
-    setOrderId(`#LRN-${Math.floor(10000 + Math.random() * 90000)}`);
     setShowPayment(true);
   };
 

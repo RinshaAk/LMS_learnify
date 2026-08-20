@@ -4,8 +4,29 @@ import Enrollment from "../models/Enrollment.js";
 import Course from "../models/Course.js";
 import { checkAndCreatePendingCertificate } from "./certificateService.js";
 import { sendEmail } from "../utils/sendEmail.js";
+import { env } from "../config/env.config.js";
+
+const assertCourseOwner = async (courseId, instructorId) => {
+  const course = await Course.findById(courseId);
+  if (!course) {
+    const error = new Error("Course not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (course.instructor.toString() !== instructorId) {
+    const error = new Error("Not authorized for this course");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  return course;
+};
+
 // Create a new mission
 export const createMissionService = async (instructorId, missionData) => {
+  await assertCourseOwner(missionData.course, instructorId);
+
   const mission = new Mission({
     ...missionData,
     instructor: instructorId,
@@ -18,7 +39,7 @@ export const createMissionService = async (instructorId, missionData) => {
       const enrollments = await Enrollment.find({ course: missionData.course }).populate("user", "name email");
       const course = await Course.findById(missionData.course).select("title");
       const courseTitle = course?.title || "your enrolled course";
-      
+
       const formattedDeadline = new Date(missionData.deadline).toLocaleDateString("en-US", {
         weekday: 'long',
         year: 'numeric',
@@ -30,7 +51,7 @@ export const createMissionService = async (instructorId, missionData) => {
         if (enrollment.user && enrollment.user.email) {
           const studentEmail = enrollment.user.email;
           const studentName = enrollment.user.name || "Student";
-          
+
           const mailSubject = `New Task Assigned: ${missionData.title}`;
           const mailHtml = `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
@@ -40,27 +61,27 @@ export const createMissionService = async (instructorId, missionData) => {
               <div style="padding: 24px; color: #334155; line-height: 1.6;">
                 <p>Hello <strong>${studentName}</strong>,</p>
                 <p>A new task has been assigned in your course: <strong>${courseTitle}</strong>.</p>
-                
+
                 <div style="background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 16px; margin: 20px 0;">
                   <h3 style="margin-top: 0; color: #92400e; border-bottom: 1px solid #fde68a; padding-bottom: 8px;">Task Details</h3>
                   <p style="margin: 8px 0;"><strong>Title:</strong> ${missionData.title}</p>
                   <p style="margin: 8px 0;"><strong>Deadline:</strong> ${formattedDeadline}</p>
                   <p style="margin: 8px 0;"><strong>Pass Marks:</strong> ${missionData.passMarks} / ${missionData.totalMarks}</p>
                 </div>
-                
+
                 <p>Log in to your dashboard to review the task description and submit your work before the deadline.</p>
-                
+
                 <div style="text-align: center; margin: 30px 0;">
-                  <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}" target="_blank" style="background-color: #f59e0b; color: #ffffff; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 6px; display: inline-block;">View Task</a>
+                  <a href="${env.CLIENT_URL || 'http://localhost:5173'}" target="_blank" style="background-color: #f59e0b; color: #ffffff; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 6px; display: inline-block;">View Task</a>
                 </div>
-                
+
                 <p style="font-size: 12px; color: #64748b; margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 16px;">
                   This is an automated notification from Learnify. Please do not reply directly to this email.
                 </p>
               </div>
             </div>
           `;
-          
+
           await sendEmail(studentEmail, mailSubject, mailHtml);
         }
       }
@@ -73,7 +94,29 @@ export const createMissionService = async (instructorId, missionData) => {
 };
 
 // Get missions for a course, optionally including the user's submission details
-export const getCourseMissionsService = async (courseId, userId = null) => {
+export const getCourseMissionsService = async (courseId, userId = null, userRole = null) => {
+  const course = await Course.findById(courseId);
+  if (!course) {
+    const error = new Error("Course not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (userRole === "instructor" && course.instructor.toString() !== userId) {
+    const error = new Error("Not authorized for this course");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  if (userRole === "student") {
+    const isEnrolled = await Enrollment.exists({ user: userId, course: courseId });
+    if (!isEnrolled) {
+      const error = new Error("You are not enrolled in this course");
+      error.statusCode = 403;
+      throw error;
+    }
+  }
+
   const missions = await Mission.find({ course: courseId })
     .populate("module", "name")
     .populate("lesson", "title")
@@ -112,6 +155,17 @@ export const submitMissionService = async (studentId, missionId, { submissionUrl
     throw new Error("Mission not found");
   }
 
+  const isEnrolled = await Enrollment.exists({
+    user: studentId,
+    course: mission.course,
+  });
+
+  if (!isEnrolled) {
+    const error = new Error("You are not enrolled in this course");
+    error.statusCode = 403;
+    throw error;
+  }
+
   // Check if student already submitted this mission
   let submission = await MissionSubmission.findOne({
     mission: missionId,
@@ -139,17 +193,36 @@ export const submitMissionService = async (studentId, missionId, { submissionUrl
 };
 
 // Instructor gets submissions for a mission
-export const getMissionSubmissionsService = async (missionId) => {
+export const getMissionSubmissionsService = async (missionId, userId, userRole) => {
+  const mission = await Mission.findById(missionId);
+  if (!mission) {
+    const error = new Error("Mission not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (userRole !== "admin" && mission.instructor.toString() !== userId) {
+    const error = new Error("Not authorized for this mission");
+    error.statusCode = 403;
+    throw error;
+  }
+
   return await MissionSubmission.find({ mission: missionId })
     .populate("student", "name email")
     .sort({ submittedAt: -1 });
 };
 
 // Instructor evaluates a submission
-export const evaluateSubmissionService = async (submissionId, { status, feedback, obtainedMarks }) => {
+export const evaluateSubmissionService = async (submissionId, instructorId, { status, feedback, obtainedMarks }) => {
   const submission = await MissionSubmission.findById(submissionId).populate("mission");
   if (!submission) {
     throw new Error("Submission not found");
+  }
+
+  if (!submission.mission || submission.mission.instructor.toString() !== instructorId) {
+    const error = new Error("Not authorized for this submission");
+    error.statusCode = 403;
+    throw error;
   }
 
   submission.status = status; // 'completed' or 'rejected'
@@ -157,7 +230,7 @@ export const evaluateSubmissionService = async (submissionId, { status, feedback
   if (obtainedMarks !== undefined) {
     submission.obtainedMarks = obtainedMarks;
   }
-  
+
   const savedSubmission = await submission.save();
 
   if (status === "completed" && submission.mission) {

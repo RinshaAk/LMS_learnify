@@ -1,14 +1,13 @@
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { 
-  Clock, 
-  LogOut,
+import {
+  Clock,
   Mail,
   RefreshCcw,
   CheckCircle2,
   AlertCircle
 } from 'lucide-react';
-import { logout, fetchProfile } from '../../features/auth/authSlice';
+import { fetchProfile } from '../../features/auth/authSlice';
 import { useNavigate } from 'react-router-dom';
 
 const InstructorPendingApproval = () => {

@@ -25,7 +25,6 @@ import path from "path";
 
 //middleware
 import errorMiddleware from "./middleware/errorMiddleware.js"
-import roleMiddleware from "./middleware/roleMiddleware.js"
 import paymentRoutes from "./routes/paymentRoutes.js";
 
 connectDB(env.MONGO_URL);
@@ -34,24 +33,12 @@ const app = express();
 const httpServer = createServer(app);
 initializeSocket(httpServer);
 
-app.use(cors({ 
+app.use(cors({
     origin: env.CLIENT_URL,
     credentials: true
 }))
 app.use(express.json())
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
-
-// Request/Response Logger Middleware for debugging
-app.use((req, res, next) => {
-  console.log(`[HTTP] ${req.method} ${req.url}`);
-  const originalJson = res.json;
-  res.json = function(body) {
-    console.log(`[HTTP] Response to ${req.method} ${req.url}: ${res.statusCode}`, JSON.stringify(body).slice(0, 500));
-    return originalJson.call(this, body);
-  };
-  next();
-});
-
 
 app.use("/api/auth", authRoutes);
 app.use("/api/courses", courseRoutes);

@@ -4,6 +4,7 @@ import Module from "../models/Module.js";
 import Lesson from "../models/Lesson.js";
 import Exam from "../models/Exam.js";
 import ExamAttempt from "../models/ExamAttempt.js";
+import Review from "../models/Review.js";
 
 
 // ================= CREATE COURSE =================
@@ -35,7 +36,7 @@ export const createCourseService = async ({
 // ================= GET ALL COURSES =================
 export const getCoursesService = async (filters = {}) => {
   const { limit, skip, ...queryFilters } = filters;
-  
+
   const query = {
     status: "published",
     approvalStatus: "approved",
@@ -182,6 +183,85 @@ export const getCourseByIdService = async (
     ...courseData,
     isEnrolled: false,
   };
+};
+
+export const getCourseReviewsService = async (courseId) => {
+  return await Review.find({ course: courseId })
+    .populate("user", "name profileImage")
+    .sort({ createdAt: -1 });
+};
+
+export const submitCourseReviewService = async ({
+  courseId,
+  userId,
+  rating,
+  comment,
+}) => {
+  const isEnrolled = await Enrollment.exists({ user: userId, course: courseId });
+  if (!isEnrolled) {
+    const error = new Error("Only enrolled students can review this course");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  const numericRating = Number(rating);
+  if (!Number.isFinite(numericRating) || numericRating < 1 || numericRating > 5) {
+    const error = new Error("Rating must be between 1 and 5");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const review = await Review.findOneAndUpdate(
+    { user: userId, course: courseId },
+    { rating: numericRating, comment },
+    { upsert: true, new: true, runValidators: true }
+  ).populate("user", "name profileImage");
+
+  const stats = await Review.aggregate([
+    { $match: { course: review.course } },
+    {
+      $group: {
+        _id: "$course",
+        averageRating: { $avg: "$rating" },
+        totalReviews: { $sum: 1 },
+      },
+    },
+  ]);
+
+  if (stats[0]) {
+    await Course.findByIdAndUpdate(courseId, {
+      averageRating: Number(stats[0].averageRating.toFixed(1)),
+      totalReviews: stats[0].totalReviews,
+    });
+  }
+
+  return review;
+};
+
+export const getCourseLessonsService = async ({ courseId, userId = null, userRole = null }) => {
+  const course = await Course.findById(courseId);
+  if (!course) {
+    const error = new Error("Course not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const isOwner = userRole === "instructor" && course.instructor.toString() === userId;
+  const isAdmin = userRole === "admin";
+  const isEnrolled = userId
+    ? await Enrollment.exists({ user: userId, course: courseId })
+    : false;
+  const canViewPaidContent = Boolean(isOwner || isAdmin || isEnrolled);
+
+  const lessons = await Lesson.find({ courseId }).sort({ order: 1 });
+
+  return lessons.map((lesson) => {
+    const data = lesson.toObject();
+    if (!canViewPaidContent && !data.isPreviewFree) {
+      data.videoUrl = null;
+    }
+    return data;
+  });
 };
 
 // ================= UPDATE COURSE =================

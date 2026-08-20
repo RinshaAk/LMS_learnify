@@ -20,11 +20,16 @@ export const SocketProvider = ({ children }) => {
 
     if (user && user._id) {
       const socketUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-      
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        return undefined;
+      }
+
       const connectSocket = () => {
         socketConn = io(socketUrl, {
-          query: {
-            userId: user._id,
+          auth: {
+            token,
           },
           transports: ["websocket", "polling"],
         });

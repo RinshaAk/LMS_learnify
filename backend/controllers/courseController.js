@@ -4,7 +4,10 @@ import {
   createCourseService,
   deleteCourseService,
   getCourseByIdService,
+  getCourseLessonsService,
+  getCourseReviewsService,
   getCoursesService,
+  submitCourseReviewService,
   updateCourseService,
 } from "../services/courseServices.js";
 
@@ -51,6 +54,42 @@ export const getCourseById = async (req, res) => {
 
 
 // ✅ Update Course
+export const getCourseReviews = async (req, res) => {
+  const reviews = await getCourseReviewsService(req.params.id);
+
+  res.status(200).json({
+    success: true,
+    reviews,
+  });
+};
+
+export const submitCourseReview = async (req, res) => {
+  const review = await submitCourseReviewService({
+    courseId: req.params.id,
+    userId: req.user.id,
+    rating: req.body.rating,
+    comment: req.body.comment,
+  });
+
+  res.status(201).json({
+    success: true,
+    review,
+  });
+};
+
+export const getCourseLessons = async (req, res) => {
+  const lessons = await getCourseLessonsService({
+    courseId: req.params.id,
+    userId: req.user?.id,
+    userRole: req.user?.role,
+  });
+
+  res.status(200).json({
+    success: true,
+    lessons,
+  });
+};
+
 export const updateCourse = async (req, res) => {
 
   const updated = await updateCourseService({

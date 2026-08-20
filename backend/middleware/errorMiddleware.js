@@ -1,3 +1,5 @@
+import { env } from "../config/env.config.js";
+
 const errorMiddleware = (err, req, res, next) => {
   console.error("Error Middleware Caught:", err);
   const statusCode = err.statusCode || 500;
@@ -5,13 +7,13 @@ const errorMiddleware = (err, req, res, next) => {
   // Render a beautiful HTML page for download routes instead of raw JSON!
   if (req.originalUrl && req.originalUrl.includes("/certificate/download/")) {
     res.setHeader("Content-Type", "text/html");
-    
+
     // Choose icon / styling based on status
     const isDanger = statusCode === 401 || statusCode === 403 || statusCode === 404 || statusCode === 500;
-    
+
     let title = "Request Error";
     let subtitle = "Something went wrong during your request.";
-    
+
     if (statusCode === 401 || statusCode === 403) {
       title = "Access Denied";
       subtitle = "We were unable to verify your session details.";
@@ -22,7 +24,7 @@ const errorMiddleware = (err, req, res, next) => {
       title = "Awaiting Instructor Approval";
       subtitle = "Your certificate has not been approved and issued yet.";
     }
-                  
+
     const details = err.message || "An unexpected error occurred.";
 
     return res.status(statusCode).send(`
@@ -139,7 +141,7 @@ const errorMiddleware = (err, req, res, next) => {
       <strong>Verification System Notice</strong>
       ${details}
     </div>
-    <a href="http://localhost:5173/student/certificates" class="btn">Back to Certificates</a>
+    <a href="${env.CLIENT_URL || "http://localhost:5173"}/student/certificates" class="btn">Back to Certificates</a>
   </div>
 </body>
 </html>

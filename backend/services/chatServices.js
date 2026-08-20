@@ -2,6 +2,7 @@ import Message from "../models/message.js";
 import User from "../models/User.js";
 import { getReceiverSocketId, getIo } from "../sockets/chatSocket.js";
 import { sendEmail } from "../utils/sendEmail.js";
+import { env } from "../config/env.config.js";
 
 // send message
 export const sendMessageService = async ({ sender, receiver, message }) => {
@@ -34,17 +35,17 @@ export const sendMessageService = async ({ sender, receiver, message }) => {
                 <div style="padding: 24px; color: #334155; line-height: 1.6;">
                   <p>Hello <strong>${receiverUser.name}</strong>,</p>
                   <p><strong>${senderName}</strong> has sent you a message on Learnify.</p>
-                  
+
                   <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0; font-style: italic; color: #475569;">
                     "${message.length > 100 ? message.substring(0, 100) + '...' : message}"
                   </div>
-                  
+
                   <p>Log in to your dashboard to view the full conversation and reply.</p>
-                  
+
                   <div style="text-align: center; margin: 30px 0;">
-                    <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}" target="_blank" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 6px; display: inline-block;">Reply Now</a>
+                    <a href="${env.CLIENT_URL || 'http://localhost:5173'}" target="_blank" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 6px; display: inline-block;">Reply Now</a>
                   </div>
-                  
+
                   <p style="font-size: 12px; color: #64748b; margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 16px;">
                     This is an automated notification from Learnify. Please do not reply directly to this email.
                   </p>
@@ -150,7 +151,7 @@ export const markAsReadService = async ({ currentUserId, userId }) => {
 // get conversations list (contacts)
 export const getConversationsService = async (userId) => {
   const currentUser = await User.findById(userId).select("role");
-  
+
   const userMessages = await Message.find({
     $or: [{ sender: userId }, { receiver: userId }],
   }).populate("sender receiver", "name email profileImage role");

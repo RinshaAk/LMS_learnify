@@ -1,7 +1,7 @@
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 
-import { generateOTP, getOtpExpiry, sendEmail } from "../utils/sendEmail.js";
+import { generateOTP, sendEmail } from "../utils/sendEmail.js";
 
 import { Otp } from "../models/Otp.js";
 
@@ -28,7 +28,6 @@ export const registerUser = async ({ name, email, password, role }) => {
     error.statusCode = 400;
     throw error;
   }
-  console.log(password)
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -60,7 +59,6 @@ export const requestOtpService = async (email) => {
   }
 
   const otp = generateOTP();
-  console.log(`[OTP GENERATED] Email: ${email}, OTP: ${otp}`);
 
   await sendEmail(email, "Your OTP Code", `Your OTP is ${otp}`);
 
@@ -84,9 +82,6 @@ export const loginUser = async ({ email, password }) => {
     error.statusCode = 401;
     throw error;
   }
-console.log("user is",user.password);
-  
-
   if (!user.isVerified) {
     const error = new Error("Please verify your account first");
     error.statusCode = 401;
@@ -94,10 +89,9 @@ console.log("user is",user.password);
   }
 
   const isMatch = await bcrypt.compare(password, user.password);
-    console.log(isMatch);
 
   if (!isMatch) {
-    
+
     const error = new Error("Invalid email or password");
     error.statusCode = 401;
     throw error;
@@ -117,7 +111,6 @@ export const verifyOtpService = async ({ email, otp }) => {
   const otpRecord = await Otp.findOne({ email });
 
   if (!otpRecord) {
-    console.log(`[OTP DEBUG] No record found for email: ${email}`);
     const error = new Error("OTP request not found. Please request a new code.");
     error.statusCode = 400;
     throw error;
@@ -127,10 +120,7 @@ export const verifyOtpService = async ({ email, otp }) => {
   const storedOtp = String(otpRecord.otp).trim();
   const incomingOtp = String(otp).trim();
 
-  console.log(`[OTP DEBUG] Verifying for ${email}: Stored[${storedOtp}], Incoming[${incomingOtp}]`);
-
   if (storedOtp !== incomingOtp) {
-    console.log(`[OTP DEBUG] Mismatch for ${email}`);
     const error = new Error("Invalid OTP");
     error.statusCode = 400;
     throw error;
@@ -148,7 +138,6 @@ export const verifyOtpService = async ({ email, otp }) => {
   const timeDifference = currentTime - otpRecord.expirydate.getTime();
 
   if (timeDifference > 3 * 60 * 1000) {
-    console.log(`[OTP DEBUG] OTP expired for ${email}`);
     await Otp.findOneAndDelete({ email });
     const error = new Error("OTP expired");
     error.statusCode = 400;
@@ -158,7 +147,6 @@ export const verifyOtpService = async ({ email, otp }) => {
   otpRecord.isVerified = true;
   await otpRecord.save();
 
-  console.log(`[OTP DEBUG] Verification successful for ${email}`);
   return { message: "OTP verified successfully" };
 };
 

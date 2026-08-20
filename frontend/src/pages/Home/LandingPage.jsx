@@ -23,6 +23,8 @@ import { fetchAllCourses } from '../../features/courses/courseThunk';
 import { logout } from '../../features/auth/authSlice';
 import heroImage from '../../assets/hero.png';
 
+const MotionDiv = motion.div;
+
 const LandingPage = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -171,7 +173,7 @@ const LandingPage = () => {
         {/* Mobile Menu Panel */}
         <AnimatePresence>
           {isMenuOpen && (
-            <motion.div 
+            <MotionDiv
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
@@ -207,7 +209,7 @@ const LandingPage = () => {
                   )}
                 </div>
               </div>
-            </motion.div>
+            </MotionDiv>
           )}
         </AnimatePresence>
       </nav>
