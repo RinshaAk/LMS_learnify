@@ -5,12 +5,8 @@ import * as Yup from "yup";
 import { registerUser, resendOtp, verifyOtp } from "../../../features/auth/authThunk";
 import { useDispatch, useSelector } from "react-redux";
 import { User, Mail, Lock, Eye, EyeOff, ShieldCheck, ArrowRight, CheckCircle2 } from "lucide-react";
-import { FcGoogle } from "react-icons/fc";
-import { FaGithub } from "react-icons/fa";
 import { toast } from 'react-hot-toast';
-import { GoogleLogin } from "@react-oauth/google";
-import { clearState, setCredentials } from "../../../features/auth/authSlice";
-import axiosInstance from "../../../features/axiosInstance";
+import { clearState } from "../../../features/auth/authSlice";
 
 function Register() {
   const navigate = useNavigate();
@@ -396,53 +392,6 @@ function Register() {
               </div>
             )}
           </form>
-
-          {!isOtpSent && (
-            <>
-              <div className="relative my-8">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-slate-200"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-white text-slate-500">Or sign up with</span>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-4 items-center">
-               <GoogleLogin
-  theme="outline"
-  size="large"
-  shape="pill"
-  width="180"
-  onSuccess={async (response) => {
-    const token = response.credential;
-
-    try {
-      const res = await axiosInstance.post("/auth/google", {
-        token,
-        role: "student",
-      });
-
-      const user = res.data;
-
-      dispatch(setCredentials(user));
-
-      toast.success("Account created successfully!");
-
-      navigate("/student/dashboard");
-    } catch (error) {
-      toast.error("Google signup failed");
-      console.log(error);
-    }
-  }}
-  onError={() => {
-    toast.error("Google signup failed");
-  }}
-/>
-
-              </div>
-            </>
-          )}
 
           <div className="text-center mt-10">
             <p className="text-sm text-slate-500">

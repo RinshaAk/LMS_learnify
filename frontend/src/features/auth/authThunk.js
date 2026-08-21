@@ -49,14 +49,14 @@ export const verifyOtp = createAsyncThunk(
   }
 );
 
-// Resend OTP
+// Send OTP
 export const resendOtp = createAsyncThunk(
   "auth/resendOtp",
   async (email, thunkAPI) => {
     try {
       return await resendOtpAPI(email);
     } catch (error) {
-      return thunkAPI.rejectWithValue(error.response?.data?.message || "Resend OTP failed");
+      return thunkAPI.rejectWithValue(error.response?.data?.message || "OTP send failed");
     }
   }
 );
