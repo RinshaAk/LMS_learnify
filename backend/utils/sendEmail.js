@@ -9,11 +9,9 @@ export class EmailDeliveryError extends Error {
 }
 
 const createTransporter = () => {
-  const emailUser = process.env.EMAIL_USER;
-  const emailPass = process.env.EMAIL_PASS;
+  const emailUser = process.env.EMAIL_USER?.trim();
+  const emailPass = process.env.EMAIL_PASS?.replace(/\s/g, "");
 
-    console.log("email",emailPass)
-    console.log("email",emailUser)
   if (!emailUser || !emailPass) {
     console.error("EMAIL_USER or EMAIL_PASS missing in environment variables");
     throw new EmailDeliveryError("Email service is not configured. Please contact support.");
@@ -26,15 +24,7 @@ const createTransporter = () => {
     auth: {
       user: emailUser,
       pass: emailPass,
-    
-      
     },
-    
-    
-    tls: {
-      rejectUnauthorized: false, // Bypass SSL certificate verification
-    },
-    
   });
 };
 
@@ -44,6 +34,7 @@ export const sendEmail = async (to, subject, html) => {
     const transporter = createTransporter();
 
     console.log(`Attempting to send email to: ${to} from ${emailUser}`);
+    await transporter.verify();
     
     const info = await transporter.sendMail({
       from: `"Learnify" <${emailUser}>`,
@@ -60,7 +51,8 @@ export const sendEmail = async (to, subject, html) => {
       stack: error.stack,
       code: error.code,
       command: error.command,
-      response: error.response
+      response: error.response,
+      responseCode: error.responseCode,
     });
     if (error.code === 'EENVELOPE') {
       const deliveryError = new Error("The email address provided is invalid or could not be reached.");
@@ -73,9 +65,12 @@ export const sendEmail = async (to, subject, html) => {
     }
     
     // Check for common Gmail errors
-    if (error.message.includes('Invalid login') || error.message.includes('Username and Password not accepted')) {
-      console.log("error seen as",error.message)
-       throw new EmailDeliveryError("Email authentication failed. Please check your App Password.");
+    if (
+      error.message.includes("Invalid login") ||
+      error.message.includes("Username and Password not accepted") ||
+      error.code === "EAUTH"
+    ) {
+      throw new EmailDeliveryError("Email authentication failed. Please check your Gmail App Password.");
     }
 
     // Default to 503 if it's likely a configuration/service issue

@@ -209,9 +209,8 @@ function InstructorLogin() {
               onSuccess={async (response) => {
                 const token = response.credential;
                 try {
-                  const res = await axiosInstance.post("/auth/google", {
+                  const res = await axiosInstance.post("/auth/google/instructor", {
                     token,
-                    role: "instructor",
                   });
                   const user = res.data;
                   if (user.role !== "instructor" && user.role !== "admin") {

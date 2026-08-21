@@ -2,7 +2,13 @@ import express from "express";
 import { asyncHandler } from "../middleware/trycatchmiddleware.js";
 
 // controllers
-import { googleAuth, login, register,} from "../controllers/authController.js"
+import {
+  googleAdminAuth,
+  googleInstructorAuth,
+  googleStudentAuth,
+  login,
+  register,
+} from "../controllers/authController.js";
 import {
   deleteCourseAdmin,
   deleteUser,
@@ -47,9 +53,11 @@ router.get("/test", (req, res) => {
 
 
 // ================= AUTH =================
-router.post("/register", asyncHandler(register));
-router.post("/login", asyncHandler(login));
-router.post("/google",googleAuth)
+router.post("/register", register);
+router.post("/login", login);
+router.post("/google/student", googleStudentAuth);
+router.post("/google/instructor", googleInstructorAuth);
+router.post("/google/admin", googleAdminAuth);
 
 // ================= ADMIN =================
 router.get("/admin/users", asyncHandler(getAllUsers));

@@ -15,6 +15,15 @@ const userSchema = new mongoose.Schema(
             type:String,
             required:true,
         },
+        googleId: {
+            type: String,
+            default: "",
+        },
+        authProviders: {
+            type: [String],
+            enum: ["password", "google"],
+            default: ["password"],
+        },
         role:{
             type:String,
             enum:["student","instructor","admin"],

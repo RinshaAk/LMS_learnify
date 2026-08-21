@@ -244,9 +244,8 @@ function Login() {
         const token = response.credential;
 
         try {
-          const res = await axiosInstance.post("/auth/google", {
+          const res = await axiosInstance.post("/auth/google/student", {
             token,
-            role: "student", // ✅ VERY IMPORTANT
           });
 
           const user = res.data;
