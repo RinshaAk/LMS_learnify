@@ -14,6 +14,28 @@ export const getFeaturedCourses = async (limit = 6) => {
   return response.data;
 };
 
+// Get courses for landing page program section
+export const getLandingCourses = async (limit = 3) => {
+  const response = await axiosInstance.get("/courses/landing-courses", {
+    params: { limit },
+  });
+  return response.data;
+};
+
+// Get public platform stats for landing page
+export const getPlatformStats = async () => {
+  const response = await axiosInstance.get("/courses/platform-stats");
+  return response.data;
+};
+
+// Get public testimonials for landing page
+export const getTopTestimonials = async (limit = 3) => {
+  const response = await axiosInstance.get("/courses/testimonials", {
+    params: { limit },
+  });
+  return response.data;
+};
+
 // Get course by ID with details
 export const getCourseById = async (courseId) => {
   const response = await axiosInstance.get(`/courses/${courseId}`);
@@ -65,6 +87,9 @@ export const updateCourse = async (courseId, courseData) => {
 export default {
   getAllCourses,
   getFeaturedCourses,
+  getLandingCourses,
+  getPlatformStats,
+  getTopTestimonials,
   getCourseById,
   getEnrolledCourses,
   enrollCourse,

@@ -9,6 +9,8 @@ import Lesson from "../models/Lesson.js";
 import Enrollment from "../models/Enrollment.js";
 import Exam from "../models/Exam.js";
 import ExamAttempt from "../models/ExamAttempt.js";
+import { sendEmail } from "../utils/sendEmail.js";
+import { instructorApprovalTemplate } from "../utils/emailTemplate.js";
 
 
 // ✅ User management
@@ -79,7 +81,41 @@ export const updateInstructorStatusService = async (userId, status) => {
   if (!user || user.role !== "instructor") throw new Error("Instructor not found");
   user.approvalStatus = status;
   await user.save();
-  return user;
+
+  let approvalEmailSent = false;
+  let approvalEmailError = null;
+
+  if (status === "approved") {
+    const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+    const instructorLoginUrl = `${clientUrl.replace(/\/$/, "")}/instructor/login`;
+    const adminEmail = process.env.EMAIL_USER?.trim() || "learnify279@gmail.com";
+
+    try {
+      await sendEmail(
+        user.email,
+        "Your Learnify Instructor Account Has Been Approved",
+        instructorApprovalTemplate({
+          instructorName: user.name,
+          instructorLoginUrl,
+          adminEmail,
+        })
+      );
+      approvalEmailSent = true;
+    } catch (error) {
+      approvalEmailError = error.message;
+      console.error("Instructor approval email failed:", {
+        instructorId: user._id,
+        email: user.email,
+        message: error.message,
+      });
+    }
+  }
+
+  return {
+    user,
+    approvalEmailSent,
+    approvalEmailError,
+  };
 };
 
 // ✅ Platform Stats

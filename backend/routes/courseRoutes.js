@@ -5,6 +5,9 @@ import {
   getCourseById,
   getCourseLessons,
   getCourseReviews,
+  getLandingCourses,
+  getPlatformStats,
+  getTopTestimonials,
   submitCourseReview,
   updateCourse,
   deleteCourse,
@@ -22,6 +25,9 @@ router.post("/", authMiddleware, roleMiddleware("instructor"), createCourse);
 
 // get all courses
 router.get("/", getCourses);
+router.get("/landing-courses", getLandingCourses);
+router.get("/platform-stats", getPlatformStats);
+router.get("/testimonials", getTopTestimonials);
 
 router.get("/:id/reviews", getCourseReviews);
 router.post("/:id/reviews", authMiddleware, roleMiddleware("student"), submitCourseReview);

@@ -107,8 +107,15 @@ export const getInstructorRequests = async (req, res, next) => {
 
 export const approveInstructor = async (req, res, next) => {
   try {
-    const user = await updateInstructorStatusService(req.params.id, "approved");
-    res.json({ message: "Instructor approved", user });
+    const result = await updateInstructorStatusService(req.params.id, "approved");
+    res.json({
+      message: result.approvalEmailSent
+        ? "Instructor approved and email sent"
+        : "Instructor approved, but approval email could not be sent",
+      user: result.user,
+      approvalEmailSent: result.approvalEmailSent,
+      approvalEmailError: result.approvalEmailError,
+    });
   } catch (error) {
     next(error);
   }
@@ -116,8 +123,8 @@ export const approveInstructor = async (req, res, next) => {
 
 export const rejectInstructor = async (req, res, next) => {
   try {
-    const user = await updateInstructorStatusService(req.params.id, "rejected");
-    res.json({ message: "Instructor rejected", user });
+    const result = await updateInstructorStatusService(req.params.id, "rejected");
+    res.json({ message: "Instructor rejected", user: result.user });
   } catch (error) {
     next(error);
   }

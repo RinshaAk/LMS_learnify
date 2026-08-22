@@ -19,21 +19,42 @@ import {
 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchAllCourses } from '../../features/courses/courseThunk';
+import { getLandingCourses, getPlatformStats, getTopTestimonials } from '../../features/courses/courseApi';
 import { logout } from '../../features/auth/authSlice';
 import heroImage from '../../assets/hero.png';
 
 const MotionDiv = motion.div;
 
+const formatStatValue = (value) => {
+  const number = Number(value) || 0;
+
+  if (number < 1000) {
+    return number.toLocaleString();
+  }
+
+  return new Intl.NumberFormat('en', {
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  }).format(number);
+};
+
+const formatGrowth = (growth) => {
+  const number = Number(growth) || 0;
+  return `${number > 0 ? '+' : ''}${number}% this month`;
+};
+
 const LandingPage = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [platformStats, setPlatformStats] = useState(null);
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [featuredCourses, setFeaturedCourses] = useState([]);
+  const [loadingCourses, setLoadingCourses] = useState(true);
+  const [testimonials, setTestimonials] = useState([]);
+  const [loadingTestimonials, setLoadingTestimonials] = useState(true);
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { user: currentUser } = useSelector((state) => state.auth);
-  const { courses: allCourses, loading: loadingCourses } = useSelector((state) => state.courses);
-
-  const featuredCourses = allCourses?.slice(0, 3) || [];
 
   useEffect(() => {
     const handleScroll = () => {
@@ -44,8 +65,88 @@ const LandingPage = () => {
   }, []);
 
   useEffect(() => {
-    dispatch(fetchAllCourses({ limit: 3, status: 'published' }));
-  }, [dispatch]);
+    let isMounted = true;
+
+    const loadLandingCourses = async () => {
+      try {
+        const response = await getLandingCourses(3);
+        if (isMounted) {
+          setFeaturedCourses(response.courses || []);
+        }
+      } catch (error) {
+        console.error('Failed to load landing courses:', error);
+        if (isMounted) {
+          setFeaturedCourses([]);
+        }
+      } finally {
+        if (isMounted) {
+          setLoadingCourses(false);
+        }
+      }
+    };
+
+    loadLandingCourses();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadPlatformStats = async () => {
+      try {
+        const response = await getPlatformStats();
+        if (isMounted) {
+          setPlatformStats(response.stats || {});
+        }
+      } catch (error) {
+        console.error('Failed to load platform stats:', error);
+        if (isMounted) {
+          setPlatformStats({});
+        }
+      } finally {
+        if (isMounted) {
+          setLoadingStats(false);
+        }
+      }
+    };
+
+    loadPlatformStats();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadTestimonials = async () => {
+      try {
+        const response = await getTopTestimonials(3);
+        if (isMounted) {
+          setTestimonials(response.testimonials || []);
+        }
+      } catch (error) {
+        console.error('Failed to load testimonials:', error);
+        if (isMounted) {
+          setTestimonials([]);
+        }
+      } finally {
+        if (isMounted) {
+          setLoadingTestimonials(false);
+        }
+      }
+    };
+
+    loadTestimonials();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleEnrollClick = (courseId) => {
     if (currentUser && currentUser.role === 'student') {
@@ -56,10 +157,10 @@ const LandingPage = () => {
   };
 
   const stats = [
-    { label: 'Active Learners', value: '25,000+', icon: <Users className="w-5 h-5 text-primary-600" /> },
-    { label: 'Expert Courses', value: '850+', icon: <BookOpen className="w-5 h-5 text-primary-600" /> },
-    { label: 'Certified Mentors', value: '120+', icon: <Award className="w-5 h-5 text-primary-600" /> },
-    { label: 'Live Sessions', value: '300+', icon: <PlayCircle className="w-5 h-5 text-primary-600" /> },
+    { label: 'Active Learners', data: platformStats?.activeLearners, icon: <Users className="w-5 h-5 text-primary-600" /> },
+    { label: 'Expert Courses', data: platformStats?.expertCourses, icon: <BookOpen className="w-5 h-5 text-primary-600" /> },
+    { label: 'Certified Mentors', data: platformStats?.certifiedMentors, icon: <Award className="w-5 h-5 text-primary-600" /> },
+    { label: 'Live Sessions', data: platformStats?.liveSessions, icon: <PlayCircle className="w-5 h-5 text-primary-600" /> },
   ];
 
   const features = [
@@ -77,24 +178,6 @@ const LandingPage = () => {
       title: 'Verified Accreditation',
       description: 'Receive certificates with unique verification IDs upon course completion and passing assessments.',
       icon: <ShieldCheck className="w-6 h-6 text-primary-600" />
-    }
-  ];
-
-  const testimonials = [
-    {
-      name: 'Alice Johnson',
-      role: 'Frontend Developer',
-      quote: 'The live reviews and mentor feedback helped me understand exactly where I needed to improve.'
-    },
-    {
-      name: 'Rahul Mehta',
-      role: 'MERN Student',
-      quote: 'The structured courses are easy to follow and the dashboard keeps me motivated every day.'
-    },
-    {
-      name: 'Priya Sharma',
-      role: 'UI Engineer',
-      quote: 'The professional certificate flow and real-world project focus made the learning feel truly career-oriented.'
     }
   ];
 
@@ -282,7 +365,16 @@ const LandingPage = () => {
                   {stat.icon}
                 </div>
                 <div>
-                  <div className="text-2xl font-extrabold text-slate-900">{stat.value}</div>
+                  <div className="text-2xl font-extrabold text-slate-900">
+                    {loadingStats ? '...' : formatStatValue(stat.data?.value)}
+                  </div>
+                  {!loadingStats && (
+                    <div className={`text-[9px] font-black uppercase tracking-widest ${
+                      (stat.data?.growth || 0) >= 0 ? 'text-emerald-500' : 'text-rose-500'
+                    }`}>
+                      {formatGrowth(stat.data?.growth)}
+                    </div>
+                  )}
                   <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</div>
                 </div>
               </div>
@@ -345,10 +437,15 @@ const LandingPage = () => {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center text-yellow-500 gap-1">
                         <Star size={14} className="fill-current" />
-                        <span className="text-slate-800 font-bold text-xs">{course.rating || 0}</span>
+                        <span className="text-slate-800 font-bold text-xs">{course.averageRating || 0}</span>
                       </div>
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{course.enrolledStudentsCount || 0} Learners</span>
                     </div>
+                    {(course.status !== 'published' || course.approvalStatus !== 'approved') && (
+                      <span className="inline-flex px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-100 text-[9px] font-black uppercase tracking-widest">
+                        {course.approvalStatus === 'approved' ? course.status : course.approvalStatus}
+                      </span>
+                    )}
                     <h4 className="text-base font-extrabold text-slate-900 leading-snug line-clamp-2 hover:text-primary-600 transition-colors cursor-pointer" onClick={() => handleEnrollClick(course._id)}>
                       {course.title}
                     </h4>
@@ -386,25 +483,57 @@ const LandingPage = () => {
             <span className="text-[10px] font-black text-primary-600 uppercase tracking-widest">Success Stories</span>
             <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Trusted by Professional Learners</h2>
           </div>
-          
+
           <div className="grid md:grid-cols-3 gap-8">
-            {testimonials.map((t, idx) => (
-              <div key={idx} className="bg-white p-8 rounded-2xl border border-slate-100 hover:shadow-md transition-all duration-300 space-y-6">
+            {loadingTestimonials ? (
+              [1, 2, 3].map((item) => (
+                <div key={item} className="bg-white p-8 rounded-2xl border border-slate-100 space-y-6 animate-pulse">
+                  <div className="h-4 w-28 bg-slate-100 rounded"></div>
+                  <div className="space-y-3">
+                    <div className="h-3 bg-slate-100 rounded"></div>
+                    <div className="h-3 bg-slate-100 rounded w-5/6"></div>
+                    <div className="h-3 bg-slate-100 rounded w-2/3"></div>
+                  </div>
+                  <div className="flex items-center gap-3 pt-4 border-t border-slate-100">
+                    <div className="w-9 h-9 rounded-xl bg-slate-100"></div>
+                    <div className="space-y-2">
+                      <div className="h-3 w-24 bg-slate-100 rounded"></div>
+                      <div className="h-2 w-32 bg-slate-100 rounded"></div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : testimonials.length > 0 ? testimonials.map((t) => (
+              <div key={t.id} className="bg-white p-8 rounded-2xl border border-slate-100 hover:shadow-md transition-all duration-300 space-y-6">
                 <div className="flex items-center gap-1 text-yellow-500">
-                  {[1, 2, 3, 4, 5].map(i => <Star key={i} size={14} className="fill-current" />)}
+                  {[1, 2, 3, 4, 5].map(i => (
+                    <Star
+                      key={i}
+                      size={14}
+                      className={i <= Math.round(t.rating || 0) ? 'fill-current' : 'text-slate-200'}
+                    />
+                  ))}
                 </div>
                 <p className="text-slate-600 text-sm leading-relaxed italic font-medium">"{t.quote}"</p>
                 <div className="flex items-center gap-3 pt-4 border-t border-slate-100">
-                  <div className="w-9 h-9 rounded-xl bg-primary-100 flex items-center justify-center text-primary-700 font-black text-xs">
-                    {t.name.charAt(0)}
-                  </div>
+                  {t.avatar ? (
+                    <img src={t.avatar} alt={t.name} className="w-9 h-9 rounded-xl object-cover" />
+                  ) : (
+                    <div className="w-9 h-9 rounded-xl bg-primary-100 flex items-center justify-center text-primary-700 font-black text-xs">
+                      {t.name?.charAt(0) || 'L'}
+                    </div>
+                  )}
                   <div>
                     <h5 className="font-bold text-slate-900 text-xs">{t.name}</h5>
                     <p className="text-[9px] text-slate-400 font-black uppercase tracking-wider">{t.role}</p>
                   </div>
                 </div>
               </div>
-            ))}
+            )) : (
+              <div className="md:col-span-3 py-12 text-center text-slate-400 font-medium italic text-sm">
+                Real learner stories will appear here after students review published courses.
+              </div>
+            )}
           </div>
         </div>
       </section>

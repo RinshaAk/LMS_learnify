@@ -7,6 +7,9 @@ import {
   getCourseLessonsService,
   getCourseReviewsService,
   getCoursesService,
+  getLandingCoursesService,
+  getPlatformStatsService,
+  getTopTestimonialsService,
   submitCourseReviewService,
   updateCourseService,
 } from "../services/courseServices.js";
@@ -40,6 +43,30 @@ export const getCourses = async (req, res) => {
 
 
 // ✅ Get single course
+export const getLandingCourses = async (req, res) => {
+  const courses = await getLandingCoursesService(req.query.limit);
+
+  res.status(200).json({
+    success: true,
+    courses,
+  });
+};
+
+export const getPlatformStats = async (req, res) => {
+  const stats = await getPlatformStatsService();
+
+  res.status(200).json(stats);
+};
+
+export const getTopTestimonials = async (req, res) => {
+  const testimonials = await getTopTestimonialsService(req.query.limit);
+
+  res.status(200).json({
+    success: true,
+    testimonials,
+  });
+};
+
 export const getCourseById = async (req, res) => {
   const userId = req.user ? req.user.id : null;
   const userRole = req.user ? req.user.role : null;
@@ -115,5 +142,3 @@ export const deleteCourse = async (req, res) => {
     message: "Course deleted successfully",
   });
 };
-
-
