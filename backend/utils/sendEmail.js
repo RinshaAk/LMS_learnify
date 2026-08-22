@@ -44,7 +44,8 @@ const createTransporter = () => {
 export const sendEmail = async (
   to,
   subject,
-  html
+  html,
+  text
 ) => {
   try {
     const emailUser = process.env.EMAIL_USER?.trim();
@@ -65,6 +66,7 @@ export const sendEmail = async (
       to: to.trim(),
       subject,
       html,
+      ...(text ? { text } : {}),
     });
 
     console.log(

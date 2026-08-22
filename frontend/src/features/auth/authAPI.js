@@ -18,9 +18,15 @@ export const verifyOtpAPI = async (data) => {
   return response.data;
 };
 
+// Send OTP
+export const sendOtpAPI = async (email) => {
+  const response = await axiosInstance.post("/auth/otp-sender", { email });
+  return response.data;
+};
+
 // Resend OTP
 export const resendOtpAPI = async (email) => {
-  const response = await axiosInstance.post("/auth/otp-sender", { email });
+  const response = await axiosInstance.post("/auth/resend-otp", { email });
   return response.data;
 };
 

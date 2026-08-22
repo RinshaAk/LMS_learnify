@@ -19,5 +19,7 @@ export const env={
     REDIS_URL:
   process.env.REDIS_URL ||
   "redis://127.0.0.1:6379",
+    ADMIN_NOTIFICATION_EMAIL:
+  process.env.ADMIN_NOTIFICATION_EMAIL ||
+  "learnify279@gmail.com",
 };
-
