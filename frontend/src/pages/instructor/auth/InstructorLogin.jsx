@@ -144,7 +144,7 @@ function InstructorLogin() {
             <div className="space-y-2">
               <div className="flex justify-between items-center px-1">
                 <label className="text-sm font-semibold text-slate-700">Password</label>
-                <Link to="/forgot-password" size="sm" className="text-indigo-600 hover:text-indigo-700 text-xs font-bold">
+                <Link to="/forgot-password?portal=instructor" size="sm" className="text-indigo-600 hover:text-indigo-700 text-xs font-bold">
                   Forgot Password?
                 </Link>
               </div>

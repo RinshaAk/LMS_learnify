@@ -35,3 +35,33 @@ export const updateProfileAPI = async (profileData) => {
   const response = await axiosInstance.put("/users/profile", profileData);
   return response.data;
 };
+
+// Request password-reset email
+export const forgotPasswordAPI = async (payload) => {
+  const requestBody =
+    typeof payload === "string" ? { email: payload } : payload;
+
+  const response = await axiosInstance.post(
+    "/auth/forgot-password",
+    requestBody
+  );
+
+  return response.data;
+};
+
+// Submit new password
+export const resetPasswordAPI = async ({
+  token,
+  password,
+  confirmPassword,
+}) => {
+  const response = await axiosInstance.post(
+    `/auth/reset-password/${token}`,
+    {
+      password,
+      confirmPassword,
+    }
+  );
+
+  return response.data;
+};

@@ -14,6 +14,8 @@ import AdminLogin from "./pages/admin/auth/AdminLogin";
 import LandingPage from "./pages/Home/LandingPage";
 import BlockedPage from "./pages/common/BlockedPage";
 import PublicRoute from "./routes/PublicRoute";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
 
 // Student Dashboard Components (Lazy loaded)
 const DashboardLayout = lazy(() => import("./components/student/DashboardLayout"));
@@ -84,6 +86,8 @@ function App() {
           <Route path="/instructor/login" element={<PublicRoute><InstructorLogin /></PublicRoute>} />
           <Route path="/instructor/register" element={<PublicRoute><InstructorRegister /></PublicRoute>} />
           <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+          <Route path="/reset-password/:token" element={<PublicRoute><ResetPassword /></PublicRoute>} />
           <Route path="/blocked" element={<BlockedPage />} />
           <Route path="/verify/:certificateCode" element={<VerifyCertificate />} />
           <Route path="/verify" element={<VerifyCertificate />} />

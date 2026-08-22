@@ -6,6 +6,10 @@ const PublicRoute = ({ children }) => {
   const token = localStorage.getItem('token');
   const location = useLocation();
 
+  if (location.pathname === '/forgot-password' || location.pathname.startsWith('/reset-password/')) {
+    return children;
+  }
+
   if (token && user) {
     // Allow logged-in students to visit instructor login/register pages
     if (user?.role === 'student' && location.pathname.startsWith('/instructor')) {
@@ -17,7 +21,7 @@ const PublicRoute = ({ children }) => {
       user?.role === 'instructor' ? '/instructor/dashboard' :
       '/student/dashboard'
     );
-    
+
     return <Navigate to={from} replace />;
   }
 

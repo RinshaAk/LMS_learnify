@@ -63,7 +63,7 @@ function AdminLogin() {
 
         // Store token/user if needed (assuming logic exists in your app)
         // localStorage.setItem("token", res.data.token);
-        
+
         alert("Welcome to the Admin Dashboard!");
         navigate("/admin/dashboard");
       } catch (err) {
@@ -210,7 +210,7 @@ function AdminLogin() {
                   Remember me
                 </label>
               </div>
-              <Link to="/forgot-password" size="sm" className="text-slate-800 hover:text-black text-xs font-bold">
+              <Link to="/forgot-password?portal=admin" size="sm" className="text-slate-800 hover:text-black text-xs font-bold">
                 Forgot Password?
               </Link>
             </div>

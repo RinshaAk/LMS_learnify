@@ -166,7 +166,7 @@ function Login() {
             <div className="space-y-2">
               <div className="flex justify-between items-center px-1">
                 <label className="text-sm font-semibold text-slate-700">Password</label>
-                <Link to="/forgot-password" size="sm" className="text-blue-600 hover:text-blue-700 text-xs font-bold">
+                <Link to="/forgot-password?portal=student" size="sm" className="text-blue-600 hover:text-blue-700 text-xs font-bold">
                   Forgot Password?
                 </Link>
               </div>

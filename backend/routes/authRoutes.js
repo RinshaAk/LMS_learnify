@@ -5,11 +5,13 @@ import { asyncHandler } from "../middleware/trycatchmiddleware.js";
 // ================= CONTROLLERS =================
 
 import {
+  forgotPassword,
   googleAdminAuth,
   googleInstructorAuth,
   googleStudentAuth,
   login,
   register,
+  resetPassword,
 } from "../controllers/authController.js";
 
 import {
@@ -218,6 +220,16 @@ router.post(
 router.get(
   "/user/enrollments",
   asyncHandler(getEnrolledCourses)
+);
+
+router.post(
+  "/forgot-password",
+  forgotPassword
+);
+
+router.post(
+  "/reset-password/:token",
+  resetPassword
 );
 
 export default router;
