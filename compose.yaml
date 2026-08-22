@@ -1,0 +1,29 @@
+services:
+  redis:
+    image: redis:7.4-alpine
+    container_name: learnify-redis
+
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --appendfsync
+      - everysec
+
+    ports:
+      - "127.0.0.1:6379:6379"
+
+    volumes:
+      - learnify_redis_data:/data
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+    restart: unless-stopped
+
+volumes:
+  learnify_redis_data:

@@ -16,5 +16,8 @@ export const env={
     process.env.MONGO_URL,
     JWT_SECRET:process.env.JWT_SECRET,
     CLIENT_URL:process.env.CLIENT_URL,
+    REDIS_URL:
+  process.env.REDIS_URL ||
+  "redis://127.0.0.1:6379",
 };
 
