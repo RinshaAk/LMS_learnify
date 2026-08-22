@@ -5,6 +5,27 @@ import Lesson from "../models/Lesson.js";
 import Exam from "../models/Exam.js";
 import ExamAttempt from "../models/ExamAttempt.js";
 import Review from "../models/Review.js";
+import User from "../models/User.js";
+import { LiveSession } from "../models/LiveSetion.js";
+
+const formatGrowth = (current, previous) => {
+  if (previous === 0) {
+    return current > 0 ? 100 : 0;
+  }
+
+  return Math.round(((current - previous) / previous) * 100);
+};
+
+const getMonthRanges = () => {
+  const now = new Date();
+  const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+  return {
+    currentMonth: { $gte: currentMonthStart, $lte: now },
+    previousMonth: { $gte: previousMonthStart, $lt: currentMonthStart },
+  };
+};
 
 
 // ================= CREATE COURSE =================
@@ -35,23 +56,159 @@ export const createCourseService = async ({
 
 // ================= GET ALL COURSES =================
 export const getCoursesService = async (filters = {}) => {
-  const { limit, skip, ...queryFilters } = filters;
+  const {
+    limit,
+    skip,
+    landing,
+    ...queryFilters
+  } = filters;
 
   const query = {
-    status: "published",
-    approvalStatus: "approved",
+    ...queryFilters,
     isHidden: { $ne: true },
     isBlocked: { $ne: true },
-    ...queryFilters
   };
+
+  if (landing !== "true") {
+    query.status = "published";
+    query.approvalStatus = "approved";
+  }
 
   const courses = await Course.find(query)
     .populate("instructor", "name email profileImage verificationDetails studentsCount")
-    .sort({ createdAt: -1 })
+    .sort({
+      approvalStatus: 1,
+      status: -1,
+      createdAt: -1,
+    })
     .limit(limit ? parseInt(limit) : 0)
     .skip(skip ? parseInt(skip) : 0);
 
   return courses;
+};
+
+// ================= PUBLIC LANDING COURSES =================
+export const getLandingCoursesService = async (limit = 3) => {
+  const parsedLimit = Math.min(Number(limit) || 3, 6);
+  const visibleQuery = {
+    isHidden: { $ne: true },
+    isBlocked: { $ne: true },
+  };
+
+  const baseQuery = Course.find(visibleQuery)
+    .populate("instructor", "name email profileImage verificationDetails")
+    .sort({ createdAt: -1 })
+    .limit(parsedLimit);
+
+  const visibleCourses = await baseQuery;
+
+  if (visibleCourses.length > 0) {
+    return visibleCourses;
+  }
+
+  return await Course.find()
+    .populate("instructor", "name email profileImage verificationDetails")
+    .sort({ createdAt: -1 })
+    .limit(parsedLimit);
+};
+
+// ================= PUBLIC PLATFORM STATS =================
+export const getPlatformStatsService = async () => {
+  const { currentMonth, previousMonth } = getMonthRanges();
+
+  const learnerQuery = { role: "student", isBlocked: { $ne: true } };
+  const courseQuery = {
+    status: "published",
+    approvalStatus: "approved",
+    isHidden: { $ne: true },
+    isBlocked: { $ne: true },
+  };
+  const mentorQuery = {
+    role: "instructor",
+    approvalStatus: "approved",
+    isBlocked: { $ne: true },
+  };
+
+  const [
+    activeLearners,
+    expertCourses,
+    certifiedMentors,
+    liveSessions,
+    currentLearners,
+    previousLearners,
+    currentCourses,
+    previousCourses,
+    currentMentors,
+    previousMentors,
+    currentLiveSessions,
+    previousLiveSessions,
+  ] = await Promise.all([
+    User.countDocuments(learnerQuery),
+    Course.countDocuments(courseQuery),
+    User.countDocuments(mentorQuery),
+    LiveSession.countDocuments(),
+    User.countDocuments({ ...learnerQuery, createdAt: currentMonth }),
+    User.countDocuments({ ...learnerQuery, createdAt: previousMonth }),
+    Course.countDocuments({ ...courseQuery, createdAt: currentMonth }),
+    Course.countDocuments({ ...courseQuery, createdAt: previousMonth }),
+    User.countDocuments({ ...mentorQuery, createdAt: currentMonth }),
+    User.countDocuments({ ...mentorQuery, createdAt: previousMonth }),
+    LiveSession.countDocuments({ createdAt: currentMonth }),
+    LiveSession.countDocuments({ createdAt: previousMonth }),
+  ]);
+
+  return {
+    success: true,
+    stats: {
+      activeLearners: {
+        value: activeLearners,
+        growth: formatGrowth(currentLearners, previousLearners),
+      },
+      expertCourses: {
+        value: expertCourses,
+        growth: formatGrowth(currentCourses, previousCourses),
+      },
+      certifiedMentors: {
+        value: certifiedMentors,
+        growth: formatGrowth(currentMentors, previousMentors),
+      },
+      liveSessions: {
+        value: liveSessions,
+        growth: formatGrowth(currentLiveSessions, previousLiveSessions),
+      },
+    },
+  };
+};
+
+// ================= PUBLIC TESTIMONIALS =================
+export const getTopTestimonialsService = async (limit = 3) => {
+  const testimonials = await Review.find({
+    rating: { $gte: 4 },
+    comment: { $exists: true, $nin: ["", null] },
+  })
+    .populate("user", "name role profileImage")
+    .populate("course", "title status approvalStatus isHidden isBlocked")
+    .sort({ rating: -1, createdAt: -1 })
+    .limit(Math.min(Number(limit) || 3, 6));
+
+  return testimonials
+    .filter((review) => (
+      review.user &&
+      review.course &&
+      review.course.status === "published" &&
+      review.course.approvalStatus === "approved" &&
+      !review.course.isHidden &&
+      !review.course.isBlocked
+    ))
+    .slice(0, 3)
+    .map((review) => ({
+      id: review._id,
+      name: review.user.name,
+      role: review.course.title,
+      quote: review.comment,
+      rating: review.rating,
+      avatar: review.user.profileImage,
+    }));
 };
 
 // ================= GET COURSE BY ID =================
