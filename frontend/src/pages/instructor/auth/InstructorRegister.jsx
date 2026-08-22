@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { registerUser, resendOtp, verifyOtp } from "../../../features/auth/authThunk";
+import { registerUser, sendOtp, resendOtp, verifyOtp } from "../../../features/auth/authThunk";
 import { clearState } from "../../../features/auth/authSlice";
 import { useDispatch, useSelector } from "react-redux";
 import { User, Mail, Lock, Eye, EyeOff, ShieldCheck, ArrowRight, CheckCircle2, Briefcase } from "lucide-react";
@@ -96,6 +96,8 @@ function InstructorRegister() {
 
   // Send OTP
   const handleSendOtp = async () => {
+    if (loading) return;
+
     // Mark fields as touched to show validation errors
     formik.setFieldTouched("name", true);
     formik.setFieldTouched("email", true);
@@ -106,7 +108,7 @@ function InstructorRegister() {
     }
 
     try {
-      await dispatch(resendOtp(formik.values.email)).unwrap();
+      await dispatch(sendOtp(formik.values.email)).unwrap();
       setIsOtpSent(true);
       setTimer(30); // start 30 sec timer
       setError("");
@@ -117,6 +119,8 @@ function InstructorRegister() {
 
   // Resend OTP
   const handleResendOtp = async () => {
+    if (loading || timer > 0) return;
+
     try {
       await dispatch(resendOtp(formik.values.email)).unwrap();
       setTimer(30);
@@ -312,7 +316,7 @@ function InstructorRegister() {
                   {timer > 0 ? (
                     <p className="text-xs text-slate-500">Resend code in <span className="font-bold">{timer}s</span></p>
                   ) : (
-                    <button type="button" onClick={handleResendOtp} className="text-indigo-600 text-xs font-bold hover:underline">Resend Verification Code</button>
+                    <button type="button" onClick={handleResendOtp} disabled={loading} className={`text-indigo-600 text-xs font-bold hover:underline ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}>Resend Verification Code</button>
                   )}
                 </div>
               </div>

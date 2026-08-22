@@ -92,17 +92,17 @@ router.post(
 
 router.post(
   "/otp-sender",
-  asyncHandler(otpController)
+  otpController
 );
 
 router.post(
   "/verify-otp",
-  asyncHandler(otpverifyController)
+  otpverifyController
 );
 
 router.post(
   "/resend-otp",
-  asyncHandler(resendOtpController)
+  resendOtpController
 );
 
 // ================= ADMIN =================

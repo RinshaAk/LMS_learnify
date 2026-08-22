@@ -3,6 +3,7 @@ import {
   registerAPI,
   loginAPI,
   verifyOtpAPI,
+  sendOtpAPI,
   resendOtpAPI,
   getProfileAPI,
   updateProfileAPI,
@@ -50,6 +51,18 @@ export const verifyOtp = createAsyncThunk(
 );
 
 // Send OTP
+export const sendOtp = createAsyncThunk(
+  "auth/sendOtp",
+  async (email, thunkAPI) => {
+    try {
+      return await sendOtpAPI(email);
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.response?.data?.message || "OTP send failed");
+    }
+  }
+);
+
+// Resend OTP
 export const resendOtp = createAsyncThunk(
   "auth/resendOtp",
   async (email, thunkAPI) => {

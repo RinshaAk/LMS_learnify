@@ -3,6 +3,7 @@ import {
   registerUser,
   loginUser,
   verifyOtp,
+  sendOtp,
   resendOtp,
   fetchProfile,
   updateProfile,
@@ -135,6 +136,20 @@ const authSlice = createSlice({
         state.error = action.payload;
       })
 
+      // SEND OTP
+      .addCase(sendOtp.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(sendOtp.fulfilled, (state) => {
+        state.loading = false;
+        state.otpSent = true;
+      })
+      .addCase(sendOtp.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
       // RESEND OTP
       .addCase(resendOtp.pending, (state) => {
         state.loading = true;
@@ -152,5 +167,5 @@ const authSlice = createSlice({
 });
 
 export const { logout, setCredentials, clearState } = authSlice.actions;
-export { registerUser, loginUser, verifyOtp, resendOtp, fetchProfile, updateProfile };
+export { registerUser, loginUser, verifyOtp, sendOtp, resendOtp, fetchProfile, updateProfile };
 export default authSlice.reducer;

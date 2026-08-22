@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { registerUser, resendOtp, verifyOtp } from "../../../features/auth/authThunk";
+import { registerUser, sendOtp, resendOtp, verifyOtp } from "../../../features/auth/authThunk";
 import { useDispatch, useSelector } from "react-redux";
 import { User, Mail, Lock, Eye, EyeOff, ShieldCheck, ArrowRight, CheckCircle2 } from "lucide-react";
 import { toast } from 'react-hot-toast';
@@ -99,12 +99,14 @@ function Register() {
 
   // Send OTP
   const handleSendOtp = async () => {
+    if (loading) return;
+
     if (!formik.values.email || !formik.values.name) {
       return setError("Please provide your name and email address to receive a code.");
     }
 
     try {
-      await dispatch(resendOtp(formik.values.email)).unwrap();
+      await dispatch(sendOtp(formik.values.email)).unwrap();
       setIsOtpSent(true);
       setTimer(30); // start 30 sec timer
       setError("");
@@ -116,6 +118,8 @@ function Register() {
 
   // Resend OTP
   const handleResendOtp = async () => {
+    if (loading || timer > 0) return;
+
     try {
       await dispatch(resendOtp(formik.values.email)).unwrap();
       setTimer(30);
@@ -314,7 +318,7 @@ function Register() {
                   {timer > 0 ? (
                     <p className="text-xs text-slate-500">Resend code in <span className="font-bold">{timer}s</span></p>
                   ) : (
-                    <button type="button" onClick={handleResendOtp} className="text-blue-600 text-xs font-bold hover:underline">Resend Verification Code</button>
+                    <button type="button" onClick={handleResendOtp} disabled={loading} className={`text-blue-600 text-xs font-bold hover:underline ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}>Resend Verification Code</button>
                   )}
                 </div>
               </div>
