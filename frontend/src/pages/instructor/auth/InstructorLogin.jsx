@@ -9,6 +9,10 @@ import { GoogleLogin } from "@react-oauth/google";
 import { toast } from 'react-hot-toast';
 import axiosInstance from "../../../features/axiosInstance";
 import { setCredentials } from "../../../features/auth/authSlice";
+import {
+  getPortalMismatchMessage,
+  getPostLoginPath,
+} from "../../../features/auth/loginFlow";
 
 function InstructorLogin() {
   const navigate = useNavigate();
@@ -43,19 +47,22 @@ function InstructorLogin() {
         const user = await dispatch(loginUser({
           email: values.email,
           password: values.password,
+          portalRole: "instructor",
         })).unwrap();
 
-        if (user.role !== "instructor" && user.role !== "admin") {
-          const errorMsg = "Access denied. You are not registered as an instructor.";
+        const nextPath = getPostLoginPath(user, "instructor");
+
+        if (!nextPath) {
+          const errorMsg = getPortalMismatchMessage(user.role);
           toast.error(errorMsg);
           setApiError(errorMsg);
           return;
         }
 
         toast.success("Welcome back, Instructor!");
-        navigate("/instructor/dashboard");
+        navigate(nextPath);
       } catch (err) {
-        const errorMsg = typeof err === 'string' ? err : (err.message || "Invalid credentials");
+        const errorMsg = typeof err === 'string' ? err : (err?.message || "Invalid credentials");
         toast.error(errorMsg);
         setApiError(errorMsg);
       } finally {
@@ -213,12 +220,14 @@ function InstructorLogin() {
                     token,
                   });
                   const user = res.data;
-                  if (user.role !== "instructor" && user.role !== "admin") {
-                    setApiError("Access denied. Not an instructor account.");
+                  const nextPath = getPostLoginPath(user, "instructor");
+
+                  if (!nextPath) {
+                    setApiError(getPortalMismatchMessage(user.role));
                     return;
                   }
-                  dispatch(setCredentials(user));
-                  navigate("/instructor/dashboard");
+                  dispatch(setCredentials({ ...user, loginPortal: "instructor" }));
+                  navigate(nextPath);
                 } catch (error) {
                   console.log("Google login error", error);
                   setApiError("Google authentication failed. Please try again.");

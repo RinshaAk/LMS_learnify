@@ -10,6 +10,10 @@ import { GoogleLogin } from "@react-oauth/google";
 import { useDispatch } from "react-redux";
 import { loginUser } from "../../../features/auth/authThunk";
 import { setCredentials } from "../../../features/auth/authSlice";
+import {
+  getPortalMismatchMessage,
+  getPostLoginPath,
+} from "../../../features/auth/loginFlow";
 import axiosInstance from "../../../features/axiosInstance";
 import heroImage from "../../../assets/hero.png";
 
@@ -61,17 +65,26 @@ function Login() {
         const result = await dispatch(loginUser({
           email: values.email,
           password: values.password,
+          portalRole: "student",
         })).unwrap();
 
-        if (result.role !== "student") {
-          toast.error("Access denied. Please use the correct portal for your account.");
+        const nextPath = getPostLoginPath(result, "student");
+
+        if (!nextPath) {
+          const errorMsg = getPortalMismatchMessage(result.role);
+          toast.error(errorMsg);
+          setApiError(errorMsg);
           return;
         }
 
         toast.success("Welcome back!");
-        navigate("/student/dashboard");
+        navigate(nextPath);
       } catch (err) {
-        setApiError(err || "Something went wrong. Please try again.");
+        const errorMsg =
+          typeof err === "string"
+            ? err
+            : err?.message || "Something went wrong. Please try again.";
+        setApiError(errorMsg);
       } finally {
         setIsLoading(false);
       }
@@ -251,17 +264,19 @@ function Login() {
           const user = res.data;
 
           // ✅ role protection
-          if (user.role !== "student") {
-            toast.error("Access denied. Use correct portal.");
+          const nextPath = getPostLoginPath(user, "student");
+
+          if (!nextPath) {
+            toast.error(getPortalMismatchMessage(user.role));
             return;
           }
 
           // ✅ save to redux
-          dispatch(setCredentials(user));
+          dispatch(setCredentials({ ...user, loginPortal: "student" }));
           toast.success("Welcome back!");
 
           // ✅ redirect
-          navigate("/student/dashboard");
+          navigate(nextPath);
 
         } catch (error) {
           toast.error("Google login failed");

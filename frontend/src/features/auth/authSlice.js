@@ -19,6 +19,7 @@ const tokenFromStorage = localStorage.getItem("token")
 
 const initialState = {
   user: userFromStorage,
+  token: tokenFromStorage,
   isAuthenticated: !!tokenFromStorage,
   loading: false,
   error: null,
@@ -32,6 +33,7 @@ const authSlice = createSlice({
   reducers: {
     logout: (state) => {
       state.user = null;
+      state.token = null;
       state.isAuthenticated = false;
       state.success = false;
       state.error = null;
@@ -40,6 +42,7 @@ const authSlice = createSlice({
     },
     setCredentials: (state, action) => {
       state.user = action.payload;
+      state.token = action.payload?.token || null;
       state.isAuthenticated = true;
       state.success = true;
       if (action.payload?.token) {
@@ -61,6 +64,7 @@ const authSlice = createSlice({
       .addCase(registerUser.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload;
+        state.token = action.payload?.token || null;
         state.isAuthenticated = true;
         state.success = true;
         state.otpSent = false;
@@ -71,7 +75,7 @@ const authSlice = createSlice({
       })
       .addCase(registerUser.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload;
+        state.error = action.payload?.message || action.payload;
       })
 
       // LOGIN
@@ -81,6 +85,7 @@ const authSlice = createSlice({
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload;
+        state.token = action.payload?.token || null;
         state.isAuthenticated = true;
         state.success = true;
         if (action.payload?.token) {
@@ -90,7 +95,7 @@ const authSlice = createSlice({
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload;
+        state.error = action.payload?.message || action.payload;
       })
 
       // FETCH PROFILE
@@ -104,7 +109,7 @@ const authSlice = createSlice({
       })
       .addCase(fetchProfile.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload;
+        state.error = action.payload?.message || action.payload;
       })
 
       // UPDATE PROFILE

@@ -8,6 +8,10 @@ import {
   getProfileAPI,
   updateProfileAPI,
 } from "./authAPI";
+import {
+  getPortalMismatchMessage,
+  shouldRestorePreviousSession,
+} from "./loginFlow";
 
 // Register
 export const registerUser = createAsyncThunk(
@@ -25,15 +29,62 @@ export const registerUser = createAsyncThunk(
 export const loginUser = createAsyncThunk(
   "auth/loginUser",
   async (data, thunkAPI) => {
+    const previousToken = localStorage.getItem("token");
+    const previousUser = localStorage.getItem("user");
+
     try {
       const res = await loginAPI(data);
-      if (res.token) localStorage.setItem("token", res.token);
-      localStorage.setItem("user", JSON.stringify(res));
-      return res;
+
+      if (data.portalRole && res.role !== data.portalRole) {
+        if (previousToken) {
+          localStorage.setItem("token", previousToken);
+        } else {
+          localStorage.removeItem("token");
+        }
+
+        if (previousUser) {
+          localStorage.setItem("user", previousUser);
+        } else {
+          localStorage.removeItem("user");
+        }
+
+        return thunkAPI.rejectWithValue({
+          message: getPortalMismatchMessage(res.role),
+          code: "ROLE_MISMATCH",
+          registeredRole: res.role,
+        });
+      }
+
+      const authenticatedUser = {
+        ...res,
+        loginPortal: data.portalRole,
+      };
+
+      if (authenticatedUser.token) {
+        localStorage.setItem("token", authenticatedUser.token);
+      }
+      localStorage.setItem("user", JSON.stringify(authenticatedUser));
+      return authenticatedUser;
     } catch (error) {
-      console.log(error.message)
-      return thunkAPI.rejectWithValue(error.response?.data?.message || "Login failed");
-      
+      const responseData = error.response?.data;
+
+      if (shouldRestorePreviousSession(responseData)) {
+        if (previousToken) {
+          localStorage.setItem("token", previousToken);
+        } else {
+          localStorage.removeItem("token");
+        }
+
+        if (previousUser) {
+          localStorage.setItem("user", previousUser);
+        } else {
+          localStorage.removeItem("user");
+        }
+      }
+
+      return thunkAPI.rejectWithValue(
+        responseData || { message: error.message || "Login failed" }
+      );
     }
   }
 );

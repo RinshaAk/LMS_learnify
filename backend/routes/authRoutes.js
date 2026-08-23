@@ -6,12 +6,15 @@ import { asyncHandler } from "../middleware/trycatchmiddleware.js";
 
 import {
   forgotPassword,
+  adminLogin,
   googleAdminAuth,
   googleInstructorAuth,
   googleStudentAuth,
+  instructorLogin,
   login,
   register,
   resetPassword,
+  studentLogin,
 } from "../controllers/authController.js";
 
 import {
@@ -72,6 +75,9 @@ router.get("/test", (req, res) => {
 // These controllers already use asyncHandler internally.
 router.post("/register", register);
 router.post("/login", login);
+router.post("/login/student", studentLogin);
+router.post("/login/instructor", instructorLogin);
+router.post("/login/admin", adminLogin);
 
 router.post(
   "/google/student",
