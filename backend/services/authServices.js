@@ -303,6 +303,31 @@ export const loginUser = async ({ email, password }) => {
   return user;
 };
 
+export const loginUserForRole = async ({ email, password, portalRole }) => {
+  const user = await loginUser({ email, password });
+
+  if (user.role !== portalRole) {
+    const error = new Error(
+      `This account is registered as ${user.role}. Please use the ${user.role} login page.`
+    );
+    error.statusCode = 403;
+    error.code = "ROLE_MISMATCH";
+    error.registeredRole = user.role;
+    throw error;
+  }
+
+  if (user.isBlocked) {
+    const error = new Error(
+      user.blockedReason || "Your account has been blocked."
+    );
+    error.statusCode = 403;
+    error.code = "ACCOUNT_BLOCKED";
+    throw error;
+  }
+
+  return user;
+};
+
 export const verifyOtpService = async ({ email, otp }) => {
   const normalizedEmail = normalizeEmail(email);
 

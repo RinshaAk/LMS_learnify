@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import io from 'socket.io-client';
 import { setSocketInstance } from '../sockets/socket.js';
@@ -12,21 +12,24 @@ export const useSocket = () => {
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const [onlineUsers, setOnlineUsers] = useState([]);
-  const { user } = useSelector((state) => state.auth);
+  const { user, token: authToken } = useSelector((state) => state.auth);
+  const socketRef = useRef(null);
+  const userId = user?._id;
+  const token = authToken || localStorage.getItem("token");
 
   useEffect(() => {
     let socketConn;
     let timeoutId;
+    let cancelled = false;
 
-    if (user && user._id) {
+    if (userId && token) {
       const socketUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-      const token = localStorage.getItem("token");
-
-      if (!token) {
-        return undefined;
-      }
 
       const connectSocket = () => {
+        if (cancelled) {
+          return;
+        }
+
         socketConn = io(socketUrl, {
           auth: {
             token,
@@ -34,6 +37,7 @@ export const SocketProvider = ({ children }) => {
           transports: ["websocket", "polling"],
         });
 
+        socketRef.current = socketConn;
         setSocket(socketConn);
         setSocketInstance(socketConn);
 
@@ -54,6 +58,7 @@ export const SocketProvider = ({ children }) => {
       timeoutId = setTimeout(connectSocket, 10);
 
       return () => {
+        cancelled = true;
         clearTimeout(timeoutId);
         if (socketConn) {
           try {
@@ -62,17 +67,28 @@ export const SocketProvider = ({ children }) => {
             console.warn('Error closing socket connection:', closeError);
           }
         }
+        if (socketRef.current === socketConn) {
+          socketRef.current = null;
+        }
         setSocket(null);
         setSocketInstance(null);
       };
-    } else {
-      if (socket) {
-        socket.close();
+    }
+
+    if (socketRef.current) {
+      try {
+        socketRef.current.close();
+      } catch (closeError) {
+        console.warn('Error closing socket connection:', closeError);
+      } finally {
+        socketRef.current = null;
         setSocket(null);
         setSocketInstance(null);
       }
     }
-  }, [user]);
+
+    return undefined;
+  }, [userId, token]);
 
   return (
     <SocketContext.Provider value={{ socket, onlineUsers }}>

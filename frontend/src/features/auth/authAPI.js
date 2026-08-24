@@ -6,9 +6,22 @@ export const registerAPI = async (userData) => {
   return response.data;
 };
 
-// Login user
+const loginEndpoints = {
+  student: "/auth/login/student",
+  instructor: "/auth/login/instructor",
+  admin: "/auth/login/admin",
+};
+
+// Login user through a server-controlled portal endpoint.
 export const loginAPI = async (userData) => {
-  const response = await axiosInstance.post("/auth/login", userData);
+  const endpoint = loginEndpoints[userData.portalRole];
+
+  if (!endpoint) {
+    throw new Error("A valid login portal is required");
+  }
+
+  const { portalRole, ...credentials } = userData;
+  const response = await axiosInstance.post(endpoint, credentials);
   return response.data;
 };
 

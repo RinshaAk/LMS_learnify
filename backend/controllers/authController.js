@@ -1,6 +1,9 @@
 import generateToken from "../utils/generateToken.js";
 import { asyncHandler } from "../middleware/trycatchmiddleware.js";
-import { loginUser, registerUser } from "../services/authServices.js";
+import {
+  loginUserForRole,
+  registerUser,
+} from "../services/authServices.js";
 import { OAuth2Client } from "google-auth-library";
 import { sendEmail } from "../utils/sendEmail.js";
 import User from "../models/User.js";
@@ -28,26 +31,54 @@ export const register = asyncHandler(async (req, res) => {
 
 // LOGIN
 export const login = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
-
-  const user = await loginUser({ email, password });
-
-  if (user.isBlocked) {
-    return res.status(403).json({
-      message: user.blockedReason || "Your account has been blocked.",
-      code: "ACCOUNT_BLOCKED",
-    });
-  }
-
-  res.json({
-    _id: user._id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    approvalStatus: user.approvalStatus,
-    token: generateToken(user._id),
+  return res.status(410).json({
+    message: "Please use the correct portal login page.",
+    code: "PORTAL_LOGIN_REQUIRED",
   });
 });
+
+export const loginFor = (portalRole) =>
+  asyncHandler(async (req, res) => {
+    const { email, password } = req.body;
+
+    try {
+      const user = await loginUserForRole({
+        email,
+        password,
+        portalRole,
+      });
+
+      return res.json({
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        approvalStatus: user.approvalStatus,
+        token: generateToken(user._id),
+      });
+    } catch (error) {
+      if (error.code === "ROLE_MISMATCH") {
+        return res.status(403).json({
+          message: error.message,
+          code: "ROLE_MISMATCH",
+          registeredRole: error.registeredRole,
+        });
+      }
+
+      if (error.code === "ACCOUNT_BLOCKED") {
+        return res.status(403).json({
+          message: error.message,
+          code: "ACCOUNT_BLOCKED",
+        });
+      }
+
+      throw error;
+    }
+  });
+
+export const studentLogin = loginFor("student");
+export const instructorLogin = loginFor("instructor");
+export const adminLogin = loginFor("admin");
 
 const googleAuthFor = (portalRole) =>
   asyncHandler(async (req, res) => {

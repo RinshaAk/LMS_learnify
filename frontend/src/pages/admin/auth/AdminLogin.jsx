@@ -7,9 +7,13 @@ import React from "react";
 
 import { useDispatch, useSelector } from "react-redux";
 import { loginUser } from "../../../features/auth/authThunk";
-import { logout, setCredentials } from "../../../features/auth/authSlice";
+import { setCredentials } from "../../../features/auth/authSlice";
 import { GoogleLogin } from "@react-oauth/google";
 import axiosInstance from "../../../features/axiosInstance";
+import {
+  getPortalMismatchMessage,
+  getPostLoginPath,
+} from "../../../features/auth/loginFlow";
 
 function AdminLogin() {
   const navigate = useNavigate();
@@ -52,26 +56,28 @@ function AdminLogin() {
         const user = await dispatch(loginUser({
           email: values.email,
           password: values.password,
+          portalRole: "admin",
         })).unwrap();
 
-        // Ensure the role is admin
-        if (user.role !== "admin") {
-          dispatch(logout());
-          setApiError("Access denied. You do not have administrator privileges.");
+        const nextPath = getPostLoginPath(user, "admin");
+
+        if (!nextPath) {
+          setApiError(getPortalMismatchMessage(user.role));
           return;
         }
 
         // Store token/user if needed (assuming logic exists in your app)
         // localStorage.setItem("token", res.data.token);
 
-        alert("Welcome to the Admin Dashboard!");
-        navigate("/admin/dashboard");
+        navigate(nextPath);
       } catch (err) {
         if (typeof err === "string") {
           setApiError(err);
-        } else if (err.response) {
+        } else if (err?.message) {
+          setApiError(err.message);
+        } else if (err?.response) {
           setApiError(err.response.data.message || "Invalid credentials");
-        } else if (err.request) {
+        } else if (err?.request) {
           setApiError("Unable to connect to server. Please try again later.");
         } else {
           setApiError("Something went wrong. Please try again.");
@@ -244,17 +250,18 @@ function AdminLogin() {
               onSuccess={async (response) => {
                 const token = response.credential;
                 try {
-                  const res = await axiosInstance.post("/auth/google", {
+                  const res = await axiosInstance.post("/auth/google/admin", {
                     token,
-                    role: "admin",
                   });
                   const user = res.data;
-                  if (user.role !== "admin") {
-                    setApiError("Access denied. Not an administrator account.");
+                  const nextPath = getPostLoginPath(user, "admin");
+
+                  if (!nextPath) {
+                    setApiError(getPortalMismatchMessage(user.role));
                     return;
                   }
-                  dispatch(setCredentials(user));
-                  navigate("/admin/dashboard");
+                  dispatch(setCredentials({ ...user, loginPortal: "admin" }));
+                  navigate(nextPath);
                 } catch (error) {
                   console.log("Google login error", error);
                   setApiError("Google authentication failed.");
