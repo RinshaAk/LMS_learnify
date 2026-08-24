@@ -38,28 +38,40 @@ const CoursePlayer = () => {
   const [expandedModule, setExpandedModule] = useState(0);
   const [currentLessonId, setCurrentLessonId] = useState(null);
 
-  const lessons = selectedCourse?.lessons || [];
+  const course = selectedCourse?.details || null;
+  const lessons = React.useMemo(() => {
+    if (course?.lessons?.length) {
+      return course.lessons;
+    }
+
+    return course?.modules?.flatMap((module) => module.lessons || []) || [];
+  }, [course]);
+
   const currentLesson = lessons.find((lesson) => lesson._id === currentLessonId) || lessons[0] || null;
 
   // Group lessons into modules (for now, we'll treat all lessons as one module if not structured)
-  const modules = (selectedCourse?.modules && selectedCourse.modules.length > 0)
-    ? selectedCourse.modules
-    : [
-        {
-          _id: 'default-module',
-          id: 'default-module',
-          title: 'Course Content',
-          duration: selectedCourse?.duration || 'Unknown',
-          lessons: lessons.map((l, idx) => ({
-            _id: l._id || idx,
-            id: l._id || idx,
-            title: l.title,
-            duration: l.duration || '00:00',
-            status: currentLesson?._id === l._id ? 'current' : 'pending',
-            videoUrl: l.videoUrl
-          })) || []
-        }
-      ];
+  const modules = React.useMemo(() => {
+    if (course?.modules && course.modules.length > 0) {
+      return course.modules;
+    }
+
+    return [
+      {
+        _id: 'default-module',
+        id: 'default-module',
+        title: 'Course Content',
+        duration: course?.duration || 'Unknown',
+        lessons: lessons.map((l, idx) => ({
+          _id: l._id || idx,
+          id: l._id || idx,
+          title: l.title,
+          duration: l.duration || '00:00',
+          status: currentLesson?._id === l._id ? 'current' : 'pending',
+          videoUrl: l.videoUrl
+        })) || []
+      }
+    ];
+  }, [course, lessons, currentLesson?._id]);
 
   // Tabs & Missions State
   const [activeTab, setActiveTab] = useState('about'); // 'about' or 'missions'
@@ -89,10 +101,43 @@ const CoursePlayer = () => {
 
   const videoRef = React.useRef(null);
   const playerContainerRef = React.useRef(null);
+  const bufferingTimerRef = React.useRef(null);
+
+  const clearBufferingIndicator = () => {
+    if (bufferingTimerRef.current) {
+      clearTimeout(bufferingTimerRef.current);
+      bufferingTimerRef.current = null;
+    }
+    setIsBuffering(false);
+  };
+
+  const handleVideoWaiting = () => {
+    if (bufferingTimerRef.current) {
+      return;
+    }
+
+    bufferingTimerRef.current = setTimeout(() => {
+      setIsBuffering(true);
+      bufferingTimerRef.current = null;
+    }, 2000);
+  };
+
+  const handleVideoPlaying = () => {
+    setIsPlaying(true);
+    clearBufferingIndicator();
+  };
 
   useEffect(() => {
     dispatch(fetchCourseThunk(id));
   }, [dispatch, id]);
+
+  useEffect(() => {
+    return () => {
+      if (bufferingTimerRef.current) {
+        clearTimeout(bufferingTimerRef.current);
+      }
+    };
+  }, []);
 
   const fetchProgress = async () => {
     try {
@@ -113,15 +158,15 @@ const CoursePlayer = () => {
   }, [id]);
 
   useEffect(() => {
-    if (selectedCourse?.lessons?.length > 0 && !currentLessonId) {
-      setCurrentLessonId(selectedCourse.lessons[0]._id);
+    if (lessons.length > 0 && !currentLessonId) {
+      setCurrentLessonId(lessons[0]._id);
     }
-    if (selectedCourse?.modules?.length > 0 && selectedCourse.modules[0] && expandedModule === 0) {
-      setExpandedModule(selectedCourse.modules[0]._id || selectedCourse.modules[0].id);
+    if (course?.modules?.length > 0 && course.modules[0] && expandedModule === 0) {
+      setExpandedModule(course.modules[0]._id || course.modules[0].id);
     } else if (expandedModule === 0 && modules.length > 0) {
       setExpandedModule(modules[0].id);
     }
-  }, [selectedCourse, currentLessonId, expandedModule, modules]);
+  }, [course, lessons, currentLessonId, expandedModule, modules]);
 
   const handleMarkComplete = async () => {
     if (!currentLesson?._id) return;
@@ -192,7 +237,7 @@ const CoursePlayer = () => {
     
     setIsPlaying(false);
     setVideoCurrentTime(0);
-    setIsBuffering(false);
+    clearBufferingIndicator();
     
     loadVideoProgress();
   }, [currentLessonId, currentLesson?._id]);
@@ -274,10 +319,10 @@ const CoursePlayer = () => {
     saveProgressToDb(true); // Force 100% watch progress on end
     
     // Auto-advance logic to naturally shift currentLessonId to the next lesson once finished.
-    if (selectedCourse?.lessons?.length > 0) {
-      const idx = selectedCourse.lessons.findIndex(l => l._id === currentLesson?._id);
-      if (idx !== -1 && idx < selectedCourse.lessons.length - 1) {
-        const nextLesson = selectedCourse.lessons[idx + 1];
+    if (lessons.length > 0) {
+      const idx = lessons.findIndex(l => l._id === currentLesson?._id);
+      if (idx !== -1 && idx < lessons.length - 1) {
+        const nextLesson = lessons[idx + 1];
         setCurrentLessonId(nextLesson._id);
         toast.success("Auto-advancing to next lesson...");
       }
@@ -416,7 +461,7 @@ const CoursePlayer = () => {
     }
   };
 
-  if (loading && !selectedCourse) {
+  if (loading && !course) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4 bg-white rounded-[2.5rem]">
         <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
@@ -426,11 +471,11 @@ const CoursePlayer = () => {
   }
 
   return (
-    <div className="h-[calc(100vh-140px)] flex flex-col lg:flex-row bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
+    <div className="min-h-[calc(100vh-140px)] flex flex-col lg:flex-row bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
       {/* Video Area */}
-      <div className="flex-1 flex flex-col bg-slate-900 overflow-hidden">
+      <div className="flex-1 min-w-0 flex flex-col bg-slate-900">
         {/* Video Player Container */}
-        <div ref={playerContainerRef} className="w-full aspect-video relative group bg-black flex items-center justify-center shrink-0 overflow-hidden shadow-2xl">
+        <div ref={playerContainerRef} className="w-full aspect-video lg:max-h-[52vh] relative group bg-black flex items-center justify-center shrink-0 overflow-hidden shadow-2xl">
           {currentLesson?.videoUrl ? (
             <>
               <video
@@ -441,8 +486,10 @@ const CoursePlayer = () => {
                 onClick={togglePlay}
                 onTimeUpdate={() => setVideoCurrentTime(videoRef.current?.currentTime || 0)}
                 onDurationChange={() => setVideoDuration(videoRef.current?.duration || 0)}
-                onWaiting={() => setIsBuffering(true)}
-                onPlaying={() => setIsPlaying(false)}
+                onWaiting={handleVideoWaiting}
+                onStalled={handleVideoWaiting}
+                onPlaying={handleVideoPlaying}
+                onCanPlay={clearBufferingIndicator}
                 onPause={handlePause}
                 onEnded={handleEnded}
                 className="w-full h-full object-contain cursor-pointer"
@@ -456,16 +503,6 @@ const CoursePlayer = () => {
                   <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
                 </div>
               )}
-
-              {/* Hover Big Play/Pause overlay */}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-                <button 
-                  onClick={togglePlay}
-                  className="pointer-events-auto p-5 bg-blue-600/90 text-white rounded-full hover:scale-110 active:scale-95 transition-all shadow-2xl hover:bg-blue-700 opacity-0 group-hover:opacity-100 duration-300 flex items-center justify-center"
-                >
-                  {isPlaying ? <Pause size={28} fill="currentColor" /> : <Play size={28} fill="currentColor" className="ml-1" />}
-                </button>
-              </div>
 
               {/* Controls overlay */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/50 opacity-0 group-hover:opacity-100 transition-all duration-300 z-10 p-5 flex flex-col justify-between select-none pointer-events-none">
@@ -491,8 +528,8 @@ const CoursePlayer = () => {
                     />
                   </div>
 
-                  <div className="flex justify-between items-center text-white">
-                    <div className="flex items-center gap-5">
+                  <div className="flex flex-wrap justify-between items-center gap-4 text-white">
+                    <div className="flex flex-wrap items-center gap-4">
                       {/* Play/Pause */}
                       <button onClick={togglePlay} className="hover:text-blue-400 transition-colors">
                         {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}
@@ -559,7 +596,7 @@ const CoursePlayer = () => {
           ) : (
             <>
               <img 
-                src={selectedCourse?.thumbnail || "https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&w=1200&q=80"} 
+                src={course?.thumbnail || "https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&w=1200&q=80"} 
                 className="w-full h-full object-cover opacity-40" 
                 alt="Video Placeholder" 
               />
@@ -577,9 +614,9 @@ const CoursePlayer = () => {
         </div>
 
         {/* Scrollable details and tabs area */}
-        <div className="flex-1 bg-white overflow-y-auto flex flex-col min-h-0">
+        <div className="bg-white flex flex-col min-h-[360px]">
           {/* Tabs Navigation */}
-          <div className="flex border-b border-slate-100 px-8 pt-4 shrink-0 bg-slate-50/50">
+          <div className="flex border-b border-slate-100 px-5 sm:px-8 pt-4 shrink-0 bg-slate-50/50 overflow-x-auto">
             <button 
               onClick={() => setActiveTab('about')}
               className={`pb-4 px-4 font-bold text-sm border-b-2 transition-all ${
@@ -608,27 +645,27 @@ const CoursePlayer = () => {
           </div>
 
           {/* Tab Content */}
-          <div className="flex-1 p-8 overflow-y-auto">
+          <div className="flex-1 p-5 sm:p-8 overflow-visible">
             {activeTab === 'about' ? (
               <div className="space-y-6">
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3">
+                <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-6">
+                  <div className="space-y-2 min-w-0">
+                    <div className="flex flex-wrap items-center gap-3">
                       <h1 className="text-2xl font-bold text-slate-900">{currentLesson?.title}</h1>
                       <span className="px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-blue-100">Now Playing</span>
                     </div>
                     <div className="flex flex-wrap items-center gap-6 text-sm font-medium text-slate-500">
                       <span className="flex items-center gap-1.5"><Clock size={16} /> {currentLesson?.duration} Duration</span>
-                      <span className="flex items-center gap-1.5"><BookOpen size={16} /> {selectedCourse?.title}</span>
+                      <span className="flex items-center gap-1.5"><BookOpen size={16} /> {course?.title}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
                     {completedLessons.includes(currentLesson?._id) ? (
                       <span className="px-5 py-3 bg-green-50 border border-green-200 text-green-700 rounded-2xl font-bold text-sm flex items-center gap-2 shadow-sm">
                         <CheckCircle2 size={18} className="text-green-600" /> Completed
                       </span>
                     ) : (
-                      <div className="flex flex-col items-end md:items-center gap-1">
+                      <div className="flex flex-col items-start sm:items-center gap-1">
                         <button 
                           onClick={handleMarkComplete}
                           disabled={markingComplete || currentLessonWatchPercentage < 80}
@@ -649,21 +686,21 @@ const CoursePlayer = () => {
                     )}
                     <button 
                       onClick={() => {
-                        const idx = selectedCourse?.lessons?.findIndex(l => l._id === currentLesson?._id);
-                        if (idx > 0) setCurrentLessonId(selectedCourse.lessons[idx - 1]._id);
+                        const idx = lessons.findIndex(l => l._id === currentLesson?._id);
+                        if (idx > 0) setCurrentLessonId(lessons[idx - 1]._id);
                       }}
-                      disabled={!selectedCourse?.lessons || selectedCourse.lessons.indexOf(currentLesson) === 0}
-                      className="px-6 py-3 bg-slate-50 text-slate-500 rounded-2xl font-bold text-sm hover:bg-slate-100 disabled:opacity-50 transition-all flex items-center gap-2 border border-slate-100"
+                      disabled={!lessons.length || lessons.indexOf(currentLesson) === 0}
+                      className="px-6 py-3 bg-slate-50 text-slate-500 rounded-2xl font-bold text-sm hover:bg-slate-100 disabled:opacity-50 transition-all flex items-center gap-2 border border-slate-100 whitespace-nowrap"
                     >
                       <ChevronLeft size={18} /> Previous
                     </button>
                     <button 
                       onClick={() => {
-                        const idx = selectedCourse?.lessons?.findIndex(l => l._id === currentLesson?._id);
-                        if (idx < selectedCourse.lessons.length - 1) setCurrentLessonId(selectedCourse.lessons[idx + 1]._id);
+                        const idx = lessons.findIndex(l => l._id === currentLesson?._id);
+                        if (idx < lessons.length - 1) setCurrentLessonId(lessons[idx + 1]._id);
                       }}
-                      disabled={!selectedCourse?.lessons || selectedCourse.lessons.indexOf(currentLesson) === selectedCourse.lessons.length - 1}
-                      className="px-8 py-3 bg-blue-600 text-white rounded-2xl font-bold text-sm hover:bg-blue-700 disabled:opacity-50 transition-all shadow-xl shadow-blue-100 flex items-center gap-2"
+                      disabled={!lessons.length || lessons.indexOf(currentLesson) === lessons.length - 1}
+                      className="px-8 py-3 bg-blue-600 text-white rounded-2xl font-bold text-sm hover:bg-blue-700 disabled:opacity-50 transition-all shadow-xl shadow-blue-100 flex items-center gap-2 whitespace-nowrap"
                     >
                       Next Lesson <ChevronRight size={18} />
                     </button>
@@ -678,7 +715,7 @@ const CoursePlayer = () => {
               </div>
             ) : (
               <div className="space-y-6">
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
                   <h3 className="text-xl font-bold text-slate-900">Course Missions & Tasks</h3>
                   <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Complete missions to unlock course points</p>
                 </div>
@@ -700,7 +737,7 @@ const CoursePlayer = () => {
                       const hasSubmitted = !!submission;
                       
                       return (
-                        <div key={mission._id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                        <div key={mission._id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
                           <div className="space-y-2 flex-1">
                             <div className="flex flex-wrap items-center gap-3">
                               <span className="px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-blue-50 text-blue-600 border border-blue-100">
@@ -774,7 +811,7 @@ const CoursePlayer = () => {
       </div>
 
       {/* Sidebar - Lesson List */}
-      <aside className="w-full lg:w-96 border-l border-slate-100 flex flex-col bg-slate-50/30 overflow-hidden">
+      <aside className="w-full lg:w-96 lg:shrink-0 border-l border-slate-100 flex flex-col bg-slate-50/30 overflow-hidden">
         <div className="p-6 bg-white border-b border-slate-100">
           <div className="flex items-center justify-between mb-6">
             <h3 className="font-bold text-slate-900">Course Content</h3>
@@ -811,7 +848,7 @@ const CoursePlayer = () => {
                     <div 
                       key={lesson.id || lesson._id} 
                       onClick={() => {
-                        const target = selectedCourse.lessons.find(l => l._id === (lesson.id || lesson._id));
+                        const target = lessons.find(l => l._id === (lesson.id || lesson._id));
                         if (target) setCurrentLessonId(target._id);
                       }}
                       className={`p-4 pl-12 flex items-center gap-4 cursor-pointer hover:bg-blue-50/50 transition-all relative ${

@@ -27,7 +27,16 @@ export const deleteUserService = async (userId) => {
 
 // ✅ Course management
 export const getAllCoursesAdminService = async () => {
-  return await Course.find().populate("instructor", "name");
+  return await Course.find()
+    .populate("instructor", "name")
+    .populate({
+      path: "modules",
+      options: { sort: { order: 1 } },
+      populate: {
+        path: "lessons",
+        options: { sort: { order: 1 } },
+      },
+    });
 };
 
 export const deleteCourseAdminService = async (courseId) => {

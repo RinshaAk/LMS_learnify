@@ -17,10 +17,11 @@ import {
 import chatService from '../../services/chatService';
 import { toast } from 'react-hot-toast';
 import { useSocket } from '../../context/SocketContext';
-import AudioCall from '../../components/live/AudioCall';
+import { useCall } from '../../context/CallContext';
 
 const InstructorMessages = () => {
   const { socket, onlineUsers } = useSocket();
+  const { startCall } = useCall();
   const userFromStorage = JSON.parse(localStorage.getItem('user') || '{}');
   const currentUserId = userFromStorage?._id || userFromStorage?.id || '';
 
@@ -30,13 +31,6 @@ const InstructorMessages = () => {
   const [messageText, setMessageText] = useState('');
   const [loading, setLoading] = useState(true);
   const [, setMessagesLoading] = useState(false);
-  const [callInfo, setCallInfo] = useState({
-    status: 'idle', // 'idle' | 'outgoing' | 'incoming' | 'ongoing'
-    roomId: '',
-    peerId: '',
-    peerName: '',
-    peerAvatar: '',
-  });
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -108,77 +102,12 @@ const InstructorMessages = () => {
       }
     };
 
-    const handleIncomingCall = ({ from, callerName, roomId }) => {
-      console.log("[Socket] Incoming call from:", from);
-      const callerConversation = conversations.find(c => c._id === from);
-      setCallInfo({
-        status: 'incoming',
-        roomId,
-        peerId: from,
-        peerName: callerName,
-        peerAvatar: callerConversation?.profileImage || '',
-      });
-    };
-
-    const handleCallAccepted = ({ from }) => {
-      console.log("[Socket] Call accepted by:", from);
-      setCallInfo(prev => ({
-        ...prev,
-        status: 'ongoing',
-      }));
-    };
-
-    const handleCallRejected = ({ from }) => {
-      console.log("[Socket] Call rejected by:", from);
-      toast.error("Call declined");
-      setCallInfo({
-        status: 'idle',
-        roomId: '',
-        peerId: '',
-        peerName: '',
-        peerAvatar: '',
-      });
-    };
-
-    const handleCallEnded = ({ from }) => {
-      console.log("[Socket] Call ended by:", from);
-      toast("Call ended");
-      setCallInfo({
-        status: 'idle',
-        roomId: '',
-        peerId: '',
-        peerName: '',
-        peerAvatar: '',
-      });
-    };
-
-    const handleCallError = ({ message }) => {
-      toast.error(message);
-      setCallInfo({
-        status: 'idle',
-        roomId: '',
-        peerId: '',
-        peerName: '',
-        peerAvatar: '',
-      });
-    };
-
     socket.on("new-message", handleNewMessage);
     socket.on("messages-read", handleMessagesRead);
-    socket.on("incoming-call", handleIncomingCall);
-    socket.on("call-accepted", handleCallAccepted);
-    socket.on("call-rejected", handleCallRejected);
-    socket.on("call-ended", handleCallEnded);
-    socket.on("call-error", handleCallError);
 
     return () => {
       socket.off("new-message", handleNewMessage);
       socket.off("messages-read", handleMessagesRead);
-      socket.off("incoming-call", handleIncomingCall);
-      socket.off("call-accepted", handleCallAccepted);
-      socket.off("call-rejected", handleCallRejected);
-      socket.off("call-ended", handleCallEnded);
-      socket.off("call-error", handleCallError);
     };
   }, [socket, selectedChat, conversations]);
 
@@ -294,63 +223,10 @@ const InstructorMessages = () => {
       return;
     }
 
-    const roomId = `call-${currentUserId}-${selectedChat}-${Date.now()}`;
-    const callerName = userFromStorage?.name || "Instructor";
-
-    // Caller joins the room immediately so they're ready for the offer
-    socket.emit("join-room", roomId);
-
-    setCallInfo({
-      status: 'outgoing',
-      roomId,
+    startCall({
       peerId: selectedChat,
       peerName: selectedContact.name,
       peerAvatar: selectedContact.profileImage || '',
-    });
-
-    socket.emit("call-user", {
-      userToCall: selectedChat,
-      callerName,
-      roomId,
-    });
-  };
-
-  const handleAcceptCall = () => {
-    if (!socket || !callInfo.peerId) return;
-    // Callee must join the WebRTC room BEFORE accepting so offer/answer relay works
-    if (callInfo.roomId) {
-      socket.emit("join-room", callInfo.roomId);
-    }
-    socket.emit("accept-call", { to: callInfo.peerId });
-    setCallInfo((prev) => ({
-      ...prev,
-      status: 'ongoing',
-    }));
-  };
-
-  const handleRejectCall = () => {
-    if (!socket || !callInfo.peerId) return;
-    socket.emit("reject-call", { to: callInfo.peerId });
-    setCallInfo({
-      status: 'idle',
-      roomId: '',
-      peerId: '',
-      peerName: '',
-      peerAvatar: '',
-    });
-  };
-
-  const handleEndCall = () => {
-    if (!socket) return;
-    if (callInfo.peerId) {
-      socket.emit("end-call", { to: callInfo.peerId, roomId: callInfo.roomId });
-    }
-    setCallInfo({
-      status: 'idle',
-      roomId: '',
-      peerId: '',
-      peerName: '',
-      peerAvatar: '',
     });
   };
 
@@ -545,21 +421,6 @@ const InstructorMessages = () => {
           </div>
         )}
       </div>
-
-      {/* ── AudioCall Overlay ── */}
-      {callInfo.status !== 'idle' && (
-        <AudioCall
-          roomId={callInfo.roomId}
-          peerId={callInfo.peerId}
-          peerName={callInfo.peerName}
-          peerAvatar={callInfo.peerAvatar}
-          callDirection={callInfo.status}
-          socket={socket}
-          onAccept={handleAcceptCall}
-          onReject={handleRejectCall}
-          onEndCall={handleEndCall}
-        />
-      )}
 
     </div>
   );

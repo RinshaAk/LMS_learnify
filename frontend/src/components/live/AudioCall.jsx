@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Mic, MicOff, PhoneOff, PhoneCall, Volume2, Loader2, Phone } from "lucide-react";
+import { Mic, MicOff, PhoneOff, Phone } from "lucide-react";
 import toast from "react-hot-toast";
 
 const AudioCall = ({
@@ -20,6 +20,7 @@ const AudioCall = ({
   const [isMuted, setIsMuted] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [duration, setDuration] = useState(0);
+  const [audioPlaybackBlocked, setAudioPlaybackBlocked] = useState(false);
 
   // Timer for ongoing call
   useEffect(() => {
@@ -44,8 +45,24 @@ const AudioCall = ({
     let isMounted = true;
     const remoteStream = new MediaStream();
 
+    const playRemoteAudio = async () => {
+      const audio = remoteAudioRef.current;
+      if (!audio) return;
+
+      try {
+        await audio.play();
+        setAudioPlaybackBlocked(false);
+      } catch (error) {
+        setAudioPlaybackBlocked(true);
+      }
+    };
+
     const initCall = async () => {
       try {
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new Error("Microphone access requires HTTPS or localhost.");
+        }
+
         // 1. Get local microphone stream
         const stream = await navigator.mediaDevices.getUserMedia({
           video: false,
@@ -61,6 +78,8 @@ const AudioCall = ({
 
         if (remoteAudioRef.current) {
           remoteAudioRef.current.srcObject = remoteStream;
+          remoteAudioRef.current.muted = false;
+          remoteAudioRef.current.volume = 1;
         }
 
         // 2. Create peer connection
@@ -87,6 +106,7 @@ const AudioCall = ({
           } else {
             remoteStream.addTrack(event.track);
           }
+          playRemoteAudio();
         };
 
         // 5. ICE candidate negotiation
@@ -117,7 +137,14 @@ const AudioCall = ({
 
       } catch (err) {
         console.error("Error starting WebRTC audio call:", err);
-        toast.error("Failed to access your microphone.");
+        const message = err.name === "NotAllowedError"
+          ? "Microphone permission was denied."
+          : err.name === "NotFoundError"
+            ? "No microphone was found."
+            : err.name === "NotReadableError"
+              ? "Microphone is already in use by another app."
+              : err.message || "Failed to access your microphone.";
+        toast.error(message);
         onEndCall();
       }
     };
@@ -202,10 +229,18 @@ const AudioCall = ({
 
       if (localStream.current) {
         localStream.current.getTracks().forEach((track) => track.stop());
+        localStream.current = null;
       }
       if (peerConnection.current) {
         peerConnection.current.close();
         peerConnection.current = null;
+      }
+      remoteStream.getTracks().forEach((track) => track.stop());
+      iceCandidateQueue.current = [];
+      setIsConnected(false);
+      setAudioPlaybackBlocked(false);
+      if (remoteAudioRef.current) {
+        remoteAudioRef.current.srcObject = null;
       }
     };
   }, [callDirection, socket, roomId]);
@@ -224,7 +259,7 @@ const AudioCall = ({
   return (
     <div className="fixed bottom-6 right-6 z-[9999] w-80 bg-slate-950/95 backdrop-blur-2xl border border-slate-800 rounded-[2rem] shadow-[0_15px_50px_rgba(0,0,0,0.6)] p-6 text-white overflow-hidden animate-in fade-in-50 slide-in-from-bottom-5 duration-300">
       {/* Remote Audio Track (Hidden) */}
-      <audio ref={remoteAudioRef} autoPlay style={{ display: "none" }} />
+      <audio ref={remoteAudioRef} autoPlay playsInline style={{ display: "none" }} />
 
       <div className="flex flex-col items-center text-center space-y-4">
         {/* Pulsing Avatar */}
@@ -252,12 +287,22 @@ const AudioCall = ({
             <p className="text-xs text-green-400 font-black uppercase tracking-wider animate-pulse mt-1">Incoming call</p>
           )}
           {callDirection === "ongoing" && (
-            <div className="flex items-center gap-1.5 justify-center mt-1">
-              <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? "bg-green-500 animate-pulse" : "bg-amber-500"}`}></span>
-              <span className="text-xs text-slate-400 font-semibold">
-                {isConnected ? formatDuration(duration) : "Connecting..."}
-              </span>
-            </div>
+            <>
+              <div className="flex items-center gap-1.5 justify-center mt-1">
+                <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? "bg-green-500 animate-pulse" : "bg-amber-500"}`}></span>
+                <span className="text-xs text-slate-400 font-semibold">
+                  {isConnected ? formatDuration(duration) : "Connecting..."}
+                </span>
+              </div>
+              {audioPlaybackBlocked && (
+                <button
+                  onClick={() => remoteAudioRef.current?.play().then(() => setAudioPlaybackBlocked(false)).catch(() => setAudioPlaybackBlocked(true))}
+                  className="mt-3 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-black uppercase tracking-wider"
+                >
+                  Enable audio
+                </button>
+              )}
+            </>
           )}
         </div>
 

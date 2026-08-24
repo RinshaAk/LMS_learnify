@@ -4,7 +4,48 @@ import { env } from "../config/env.config.js";
 import User from "../models/User.js";
 
 let io;
-const userSocketMap = {}; // { userId: socketId }
+const userSocketMap = new Map(); // userId -> Set<socketId>
+
+const normalizeId = (id) => id?.toString();
+
+const addUserSocket = (userId, socketId) => {
+  const key = normalizeId(userId);
+  if (!key) return;
+
+  const sockets = userSocketMap.get(key) || new Set();
+  sockets.add(socketId);
+  userSocketMap.set(key, sockets);
+};
+
+const removeUserSocket = (userId, socketId) => {
+  const key = normalizeId(userId);
+  if (!key) return;
+
+  const sockets = userSocketMap.get(key);
+  if (!sockets) return;
+
+  sockets.delete(socketId);
+  if (sockets.size === 0) {
+    userSocketMap.delete(key);
+  }
+};
+
+const getUserSocketIds = (userId) => {
+  const key = normalizeId(userId);
+  return key ? Array.from(userSocketMap.get(key) || []) : [];
+};
+
+const emitOnlineUsers = () => {
+  io.emit("getOnlineUsers", Array.from(userSocketMap.keys()));
+};
+
+const emitToUser = (userId, event, payload) => {
+  const socketIds = getUserSocketIds(userId);
+  socketIds.forEach((socketId) => {
+    io.to(socketId).emit(event, payload);
+  });
+  return socketIds.length > 0;
+};
 
 export const initializeSocket = (server) => {
   io = new Server(server, {
@@ -40,10 +81,10 @@ export const initializeSocket = (server) => {
     const userId = socket.userId;
     console.log(`[Socket] Client connected. SocketID: ${socket.id}, UserID: ${userId}`);
 
-    userSocketMap[userId] = socket.id;
+    addUserSocket(userId, socket.id);
 
     // Broadcast online users
-    io.emit("getOnlineUsers", Object.keys(userSocketMap));
+    emitOnlineUsers();
 
     // WebRTC Signaling Events
     socket.on("join-room", (roomId) => {
@@ -74,41 +115,74 @@ export const initializeSocket = (server) => {
     });
 
     // Audio Call signaling events
-    socket.on("call-user", ({ userToCall, callerName, roomId }) => {
-      console.log(`[Socket] Call user ${userToCall} from ${userId}`);
-      const receiverSocketId = userSocketMap[userToCall];
-      if (receiverSocketId) {
-        io.to(receiverSocketId).emit("incoming-call", {
-          from: userId,
-          callerName,
-          roomId
+    socket.on("call-user", ({ userToCall, callerName, callerAvatar, roomId, callId }) => {
+      const targetUserId = normalizeId(userToCall);
+      if (!targetUserId || !roomId || !callId) {
+        socket.emit("call-error", { callId, message: "Invalid call request" });
+        return;
+      }
+
+      if (targetUserId === userId) {
+        socket.emit("call-error", { callId, message: "You cannot call yourself" });
+        return;
+      }
+
+      const delivered = emitToUser(targetUserId, "incoming-call", {
+        from: userId,
+        callerId: userId,
+        callerName: callerName || "User",
+        callerAvatar: callerAvatar || "",
+        roomId,
+        callId,
+      });
+
+      if (!delivered) {
+        socket.emit("call-unavailable", {
+          callId,
+          to: targetUserId,
+          message: "User is offline",
         });
-      } else {
-        socket.emit("call-error", { message: "User is offline" });
       }
     });
 
-    socket.on("accept-call", ({ to }) => {
-      console.log(`[Socket] Call accepted by ${userId} for ${to}`);
-      const callerSocketId = userSocketMap[to];
-      if (callerSocketId) {
-        io.to(callerSocketId).emit("call-accepted", { from: userId });
+    socket.on("accept-call", ({ to, callId, roomId }) => {
+      const targetUserId = normalizeId(to);
+      if (!targetUserId || !callId) {
+        socket.emit("call-error", { callId, message: "Invalid accept call request" });
+        return;
       }
+
+      emitToUser(targetUserId, "call-accepted", {
+        from: userId,
+        accepterId: userId,
+        callId,
+        roomId,
+      });
     });
 
-    socket.on("reject-call", ({ to }) => {
-      console.log(`[Socket] Call rejected by ${userId} for ${to}`);
-      const callerSocketId = userSocketMap[to];
-      if (callerSocketId) {
-        io.to(callerSocketId).emit("call-rejected", { from: userId });
+    socket.on("reject-call", ({ to, callId }) => {
+      const targetUserId = normalizeId(to);
+      if (!targetUserId || !callId) {
+        socket.emit("call-error", { callId, message: "Invalid reject call request" });
+        return;
       }
+
+      emitToUser(targetUserId, "call-rejected", {
+        from: userId,
+        rejecterId: userId,
+        callId,
+      });
     });
 
-    socket.on("end-call", ({ to, roomId }) => {
-      console.log(`[Socket] Call ended by ${userId} for ${to}`);
-      const targetSocketId = userSocketMap[to];
-      if (targetSocketId) {
-        io.to(targetSocketId).emit("call-ended", { from: userId });
+    socket.on("end-call", ({ to, roomId, callId }) => {
+      const targetUserId = normalizeId(to);
+      if (targetUserId) {
+        emitToUser(targetUserId, "call-ended", {
+          from: userId,
+          endedBy: userId,
+          callId,
+          roomId,
+        });
       }
       if (roomId) {
         socket.leave(roomId);
@@ -117,10 +191,8 @@ export const initializeSocket = (server) => {
 
     socket.on("disconnect", () => {
       console.log(`[Socket] Client disconnected. SocketID: ${socket.id}`);
-      if (userSocketMap[userId] === socket.id) {
-        delete userSocketMap[userId];
-      }
-      io.emit("getOnlineUsers", Object.keys(userSocketMap));
+      removeUserSocket(userId, socket.id);
+      emitOnlineUsers();
     });
   });
 
@@ -128,7 +200,7 @@ export const initializeSocket = (server) => {
 };
 
 export const getReceiverSocketId = (receiverId) => {
-  return userSocketMap[receiverId];
+  return getUserSocketIds(receiverId)[0];
 };
 
 export const getIo = () => {

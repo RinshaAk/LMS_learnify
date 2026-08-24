@@ -8,6 +8,7 @@ import { store, persistor } from './features/store.js';
 import { PersistGate } from 'redux-persist/integration/react';
 import { GoogleOAuthProvider } from "@react-oauth/google"
 import { SocketProvider } from './context/SocketContext.jsx';
+import { CallProvider } from './context/CallContext.jsx';
 
 const OnlineGoogleOAuthProvider = ({ children }) => {
   const [online, setOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
@@ -43,7 +44,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <Provider store={store}>
           <PersistGate loading={null} persistor={persistor}>
             <SocketProvider>
-              <App />
+              <CallProvider>
+                <App />
+              </CallProvider>
             </SocketProvider>
           </PersistGate>
         </Provider>
