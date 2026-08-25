@@ -38,7 +38,8 @@ import errorMiddleware from "./middleware/errorMiddleware.js";
 const app = express();
 const httpServer = createServer(app);
 
-initializeSocket(httpServer);
+const io = initializeSocket(httpServer);
+app.set("io", io);
 
 // ================= MIDDLEWARE =================
 
