@@ -30,8 +30,23 @@ export const startLiveSession = async (id) => {
   return response.data;
 };
 
+export const getLiveSessionStatus = async (id) => {
+  const response = await axiosInstance.get(`/live/${id}/status`);
+  return response.data;
+};
+
+export const getBroadcastDetails = async (id) => {
+  const response = await axiosInstance.get(`/live/${id}/broadcast`);
+  return response.data;
+};
+
 export const endLiveSession = async (id) => {
   const response = await axiosInstance.put(`/live/${id}/end`);
+  return response.data;
+};
+
+export const cancelLiveSession = async (id, reason = '') => {
+  const response = await axiosInstance.patch(`/live/${id}/cancel`, { reason });
   return response.data;
 };
 
@@ -45,6 +60,9 @@ export default {
   getInstructorLiveSessions,
   createLiveSession,
   startLiveSession,
+  getLiveSessionStatus,
+  getBroadcastDetails,
   endLiveSession,
+  cancelLiveSession,
   deleteLiveSession,
 };
