@@ -2,245 +2,550 @@ import { LiveSession } from "../models/LiveSetion.js";
 import Enrollment from "../models/Enrollment.js";
 import User from "../models/User.js";
 import Course from "../models/Course.js";
-import { getReceiverSocketId, getIo } from "../sockets/chatSocket.js";
+import { getIo } from "../sockets/chatSocket.js";
 import { sendEmail } from "../utils/sendEmail.js";
+import {
+  createIvsChannel,
+  getIvsStream,
+  stopIvsStream,
+  deleteIvsChannel,
+} from "./ivsService.js";
 
-// create
+let liveSessionModel = LiveSession;
+let enrollmentModel = Enrollment;
+let userModel = User;
+let courseModel = Course;
+let socketGetter = getIo;
+let emailSender = sendEmail;
+let ivsOps = {
+  createIvsChannel,
+  getIvsStream,
+  stopIvsStream,
+  deleteIvsChannel,
+};
+
+const makeError = (message, statusCode = 500) => {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+};
+
+const idsEqual = (left, right) => {
+  return left?.toString() === right?.toString();
+};
+
+const toPlainSession = (session) => {
+  if (!session) return session;
+  return typeof session.toObject === "function" ? session.toObject() : { ...session };
+};
+
+const publicSession = (session) => {
+  const plain = toPlainSession(session);
+  if (!plain) return plain;
+
+  delete plain.ivsIngestEndpoint;
+  delete plain.streamKeyArn;
+  delete plain.playbackUrl;
+  delete plain.streamKeyValue;
+  delete plain.meetingLink;
+  delete plain.startTime;
+  delete plain.isLive;
+  delete plain.isCompleted;
+
+  return plain;
+};
+
+const playbackSession = (session, stream = { isLive: false, viewerCount: 0 }) => {
+  const plain = toPlainSession(session);
+
+  return {
+    id: plain._id,
+    title: plain.title,
+    course: plain.course,
+    status: stream.isLive ? "live" : plain.status,
+    scheduledAt: plain.scheduledAt,
+    startedAt: plain.startedAt,
+    isLive: stream.isLive,
+    viewerCount: stream.viewerCount ?? 0,
+    chatEnabled: plain.chatEnabled,
+    attendanceEnabled: plain.attendanceEnabled,
+    playbackUrl: plain.playbackUrl,
+  };
+};
+
+const emitLiveEvent = (event, payload) => {
+  try {
+    socketGetter().emit(event, payload);
+  } catch (error) {
+    console.error(`[Socket] Failed to emit ${event}:`, error.message);
+  }
+};
+
+const findSessionById = async (sessionId, selectFields = "") => {
+  let query = liveSessionModel.findById(sessionId);
+
+  if (selectFields && typeof query.select === "function") {
+    query = query.select(selectFields);
+  }
+
+  return await query;
+};
+
+const findSessionList = async (criteria) => {
+  return await liveSessionModel
+    .find(criteria)
+    .populate("course", "title")
+    .populate("instructor", "name profileImage")
+    .sort({ scheduledAt: -1 });
+};
+
+const resetSessionAfterStartFailure = async (sessionId, status = "scheduled") => {
+  await liveSessionModel
+    .findByIdAndUpdate(sessionId, {
+      status,
+      ivsChannelArn: null,
+      ivsChannelName: null,
+      ivsIngestEndpoint: null,
+      streamKeyArn: null,
+      playbackUrl: null,
+    })
+    .catch(() => {});
+};
+
+export const __setLiveServiceDependenciesForTest = (overrides = {}) => {
+  liveSessionModel = overrides.LiveSession || liveSessionModel;
+  enrollmentModel = overrides.Enrollment || enrollmentModel;
+  userModel = overrides.User || userModel;
+  courseModel = overrides.Course || courseModel;
+  socketGetter = overrides.getIo || socketGetter;
+  emailSender = overrides.sendEmail || emailSender;
+  ivsOps = {
+    ...ivsOps,
+    ...(overrides.ivsOps || {}),
+  };
+};
+
+export const __resetLiveServiceDependenciesForTest = () => {
+  liveSessionModel = LiveSession;
+  enrollmentModel = Enrollment;
+  userModel = User;
+  courseModel = Course;
+  socketGetter = getIo;
+  emailSender = sendEmail;
+  ivsOps = {
+    createIvsChannel,
+    getIvsStream,
+    stopIvsStream,
+    deleteIvsChannel,
+  };
+};
+
 export const createLiveSessionService = async ({
   course,
+  courseId,
   instructor,
   title,
+  description = "",
+  scheduledAt,
   startTime,
-  meetingLink,
+  chatEnabled = true,
+  attendanceEnabled = true,
 }) => {
-  const courseDoc = await Course.findById(course);
+  const canonicalCourseId = courseId ?? course;
+  const canonicalScheduledAt = scheduledAt ?? startTime;
+
+  if (!canonicalCourseId || !title || !canonicalScheduledAt) {
+    throw makeError("Course, title and scheduled time are required", 400);
+  }
+
+  const scheduledDate = new Date(canonicalScheduledAt);
+  if (Number.isNaN(scheduledDate.getTime())) {
+    throw makeError("Invalid scheduled date", 400);
+  }
+
+  const courseDoc = await courseModel.findById(canonicalCourseId);
   if (!courseDoc) {
-    const error = new Error("Course not found");
-    error.statusCode = 404;
-    throw error;
+    throw makeError("Course not found", 404);
   }
 
-  if (courseDoc.instructor.toString() !== instructor) {
-    const error = new Error("Not authorized for this course");
-    error.statusCode = 403;
-    throw error;
+  if (!idsEqual(courseDoc.instructor, instructor)) {
+    throw makeError("Not authorized for this course", 403);
   }
 
-  const session = await LiveSession.create({
-    course,
+  const session = await liveSessionModel.create({
+    course: canonicalCourseId,
     instructor,
-    title,
-    startTime,
-    meetingLink,
+    title: title.trim(),
+    description: description.trim(),
+    scheduledAt: scheduledDate,
+    chatEnabled,
+    attendanceEnabled,
+    status: "scheduled",
   });
 
-  const populatedSession = await LiveSession.findById(session._id)
+  const populatedSession = await liveSessionModel
+    .findById(session._id)
     .populate("course", "title")
     .populate("instructor", "name profileImage");
 
-  try {
-    const io = getIo();
-    io.emit("liveClassCreated", populatedSession);
-  } catch (err) {
-    console.error("[Socket] Failed to emit liveClassCreated:", err);
-  }
+  emitLiveEvent("liveClassCreated", publicSession(populatedSession));
 
-  // Notify enrolled students via email asynchronously
   try {
-    const enrollments = await Enrollment.find({ course }).populate("user", "name email");
+    const enrollments = await enrollmentModel
+      .find({ course: canonicalCourseId })
+      .populate("user", "name email");
 
-    // We send emails in background so we don't block the request
     (async () => {
       const courseTitle = populatedSession.course?.title || "your enrolled course";
       const instructorName = populatedSession.instructor?.name || "your instructor";
-      const formattedDate = new Date(startTime).toLocaleDateString("en-US", {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        timeZoneName: 'short'
+      const formattedDate = scheduledDate.toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZoneName: "short",
       });
 
       for (const enrollment of enrollments) {
-        if (enrollment.user && enrollment.user.email) {
-          const studentEmail = enrollment.user.email;
-          const studentName = enrollment.user.name || "Student";
+        if (!enrollment.user?.email) continue;
 
-          const mailSubject = `New Live Class Scheduled: ${title}`;
-          const mailHtml = `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
-              <div style="background-color: #2563eb; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; color: #ffffff;">
-                <h1 style="margin: 0; font-size: 24px;">New Live Class Scheduled</h1>
-              </div>
-              <div style="padding: 24px; color: #334155; line-height: 1.6;">
-                <p>Hello <strong>${studentName}</strong>,</p>
-                <p>A new live class has been scheduled for your course: <strong>${courseTitle}</strong>.</p>
+        const studentName = enrollment.user.name || "Student";
+        const mailSubject = `New Live Class Scheduled: ${title}`;
+        const mailHtml = `
+          <p>Hello <strong>${studentName}</strong>,</p>
+          <p>A new live class has been scheduled for <strong>${courseTitle}</strong>.</p>
+          <p><strong>Topic:</strong> ${title}</p>
+          <p><strong>Instructor:</strong> ${instructorName}</p>
+          <p><strong>Scheduled At:</strong> ${formattedDate}</p>
+          <p>You can join from your Learnify dashboard when the instructor starts the stream.</p>
+        `;
 
-                <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
-                  <h3 style="margin-top: 0; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">Class Details</h3>
-                  <p style="margin: 8px 0;"><strong>Topic:</strong> ${title}</p>
-                  <p style="margin: 8px 0;"><strong>Instructor:</strong> ${instructorName}</p>
-                  <p style="margin: 8px 0;"><strong>Start Time:</strong> ${formattedDate}</p>
-                </div>
-
-                <p>You can join the session directly through your dashboard or using the link below:</p>
-
-                <div style="text-align: center; margin: 30px 0;">
-                  <a href="${meetingLink}" target="_blank" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 6px; display: inline-block;">Join Live Class</a>
-                </div>
-
-                <p style="font-size: 12px; color: #64748b; margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 16px;">
-                  This is an automated notification from Learnify. Please do not reply directly to this email.
-                </p>
-              </div>
-            </div>
-          `;
-
-          sendEmail(studentEmail, mailSubject, mailHtml).catch(err => {
-            console.error(`[Email] Failed to send live class email to ${studentEmail}:`, err.message);
-          });
-        }
+        emailSender(enrollment.user.email, mailSubject, mailHtml).catch((error) => {
+          console.error("[Email] Failed to send live class email:", error.message);
+        });
       }
     })();
-  } catch (notifyErr) {
-    console.error("[Email Notification] Error fetching enrollments for notification:", notifyErr);
+  } catch (error) {
+    console.error("[Email Notification] Error fetching enrollments:", error.message);
   }
 
-  return populatedSession;
+  return publicSession(populatedSession);
 };
 
-// get sessions
 export const getLiveSessionsService = async (courseId) => {
-  return await LiveSession.find({ course: courseId })
-    .populate("instructor", "name");
+  const sessions = await findSessionList({ course: courseId });
+  return sessions.map(publicSession);
 };
 
-// get my sessions (for student / instructor)
 export const getMyLiveSessionsService = async (userId) => {
-  const user = await User.findById(userId);
-  if (!user) throw new Error("User not found");
+  const user = await userModel.findById(userId);
+  if (!user) {
+    throw makeError("User not found", 404);
+  }
 
   if (user.role === "instructor") {
-    return await LiveSession.find({ instructor: userId })
-      .populate("course", "title")
-      .populate("instructor", "name profileImage");
-  } else {
-    const enrollments = await Enrollment.find({ user: userId });
-    const courseIds = enrollments.map((e) => e.course);
-
-    return await LiveSession.find({ course: { $in: courseIds } })
-      .populate("course", "title")
-      .populate("instructor", "name profileImage");
+    const sessions = await findSessionList({ instructor: userId });
+    return sessions.map(publicSession);
   }
+
+  const enrollments = await enrollmentModel.find({ user: userId });
+  const courseIds = enrollments.map((enrollment) => enrollment.course);
+  const sessions = await findSessionList({ course: { $in: courseIds } });
+
+  return sessions.map(publicSession);
 };
 
-// start session
 export const startLiveSessionService = async ({ sessionId, userId }) => {
-  const session = await LiveSession.findById(sessionId);
-
-  if (!session) {
-    throw new Error("Session not found");
-  }
-
-  if (session.instructor.toString() !== userId) {
-    const err = new Error("Not authorized");
-    err.statusCode = 403;
-    throw err;
-  }
-
-  if (session.isLive) {
-    throw new Error("Session already live");
-  }
-
-  session.isLive = true;
-  await session.save();
-
-  const populatedSession = await LiveSession.findById(sessionId)
-    .populate("course", "title")
-    .populate("instructor", "name profileImage");
+  let createdChannelArn = null;
 
   try {
-    const io = getIo();
-    io.emit("live-session-started", {
-      sessionId: session._id,
-      courseId: session.course,
-      title: session.title,
-      startTime: session.startTime,
-      meetingLink: session.meetingLink,
-      instructor: session.instructor,
-    });
-    io.emit("liveClassUpdated", populatedSession);
-  } catch (err) {
-    console.error("[Socket] Failed to emit live-session-started / liveClassUpdated:", err);
-  }
+    const session = await findSessionById(
+      sessionId,
+      "+playbackUrl +ivsIngestEndpoint +streamKeyArn"
+    );
 
-  return true;
+    if (!session) {
+      throw makeError("Live session not found", 404);
+    }
+
+    if (!idsEqual(session.instructor, userId)) {
+      throw makeError("Only the assigned instructor can start this session", 403);
+    }
+
+    if (session.status === "ended") {
+      throw makeError("This live session has already ended", 400);
+    }
+
+    if (session.status === "cancelled") {
+      throw makeError("This live session has been cancelled", 400);
+    }
+
+    if (session.ivsChannelArn) {
+      throw makeError("An IVS channel already exists for this session", 409);
+    }
+
+    session.status = "starting";
+    await session.save();
+
+    const ivsChannel = await ivsOps.createIvsChannel({
+      sessionId: session._id,
+      instructorId: session.instructor,
+    });
+
+    createdChannelArn = ivsChannel.channelArn;
+
+    session.ivsChannelArn = ivsChannel.channelArn;
+    session.ivsChannelName = ivsChannel.channelName;
+    session.ivsIngestEndpoint = ivsChannel.ingestEndpoint;
+    session.streamKeyArn = ivsChannel.streamKeyArn;
+    session.playbackUrl = ivsChannel.playbackUrl;
+
+    await session.save();
+
+    emitLiveEvent("liveClassUpdated", publicSession(session));
+
+    return {
+      session: publicSession(session),
+      broadcast: {
+        serverUrl: `rtmps://${ivsChannel.ingestEndpoint}:443/app/`,
+        streamKey: ivsChannel.streamKeyValue,
+      },
+    };
+  } catch (error) {
+    if (createdChannelArn) {
+      try {
+        await ivsOps.deleteIvsChannel(createdChannelArn);
+        await resetSessionAfterStartFailure(sessionId, "scheduled");
+      } catch (cleanupError) {
+        console.error("IVS cleanup error:", cleanupError.message);
+        await resetSessionAfterStartFailure(sessionId, "failed");
+      }
+    } else if (!error.statusCode || error.statusCode >= 500) {
+      await resetSessionAfterStartFailure(sessionId, "scheduled");
+    }
+
+    throw error;
+  }
 };
 
-// end session
+export const getLiveSessionStatusService = async ({ sessionId }) => {
+  const session = await findSessionById(sessionId);
+
+  if (!session) {
+    throw makeError("Live session not found", 404);
+  }
+
+  if (!session.ivsChannelArn) {
+    return {
+      status: session.status,
+      isLive: false,
+      viewerCount: 0,
+    };
+  }
+
+  const stream = await ivsOps.getIvsStream(session.ivsChannelArn);
+
+  if (stream.isLive) {
+    const update = {
+      status: "live",
+      viewerCount: stream.viewerCount ?? 0,
+    };
+
+    if (!session.startedAt) {
+      update.startedAt = stream.startedAt || new Date();
+    }
+
+    if ((stream.viewerCount ?? 0) > (session.peakViewerCount ?? 0)) {
+      update.peakViewerCount = stream.viewerCount;
+    }
+
+    await liveSessionModel.findByIdAndUpdate(session._id, update);
+
+    return {
+      status: "live",
+      isLive: true,
+      health: stream.health,
+      viewerCount: stream.viewerCount ?? 0,
+      startedAt: update.startedAt || session.startedAt,
+    };
+  }
+
+  const status = session.status === "ended" || session.status === "cancelled"
+    ? session.status
+    : "starting";
+
+  return {
+    status,
+    isLive: false,
+    viewerCount: 0,
+  };
+};
+
+export const getBroadcastDetailsService = async ({ sessionId, userId }) => {
+  const session = await findSessionById(sessionId, "+ivsIngestEndpoint");
+
+  if (!session) {
+    throw makeError("Live session not found", 404);
+  }
+
+  if (!idsEqual(session.instructor, userId)) {
+    throw makeError("You cannot access this session's broadcast details", 403);
+  }
+
+  if (!session.ivsChannelArn || !session.ivsIngestEndpoint) {
+    throw makeError("Start the live session before requesting broadcast details", 400);
+  }
+
+  return {
+    serverUrl: `rtmps://${session.ivsIngestEndpoint}:443/app/`,
+    streamKeyAvailable: false,
+    message: "The stream key value is only returned once when the channel is created.",
+  };
+};
+
+export const watchLiveSessionService = async ({ sessionId, userId, userRole }) => {
+  if (userRole !== "student") {
+    throw makeError("Only students can watch this live session", 403);
+  }
+
+  const session = await findSessionById(sessionId, "+playbackUrl");
+
+  if (!session) {
+    throw makeError("Live session not found", 404);
+  }
+
+  const enrollment = await enrollmentModel.findOne({
+    user: userId,
+    course: session.course,
+  });
+
+  if (!enrollment) {
+    throw makeError("You are not enrolled in this course", 403);
+  }
+
+  if (session.status === "cancelled") {
+    throw makeError("This live session was cancelled", 400);
+  }
+
+  if (!session.playbackUrl) {
+    throw makeError("The instructor has not prepared this stream yet", 409);
+  }
+
+  const stream = session.ivsChannelArn
+    ? await ivsOps.getIvsStream(session.ivsChannelArn)
+    : { isLive: false, viewerCount: 0 };
+
+  if (stream.isLive && session.status !== "live") {
+    await liveSessionModel.findByIdAndUpdate(session._id, {
+      status: "live",
+      startedAt: session.startedAt || stream.startedAt || new Date(),
+      viewerCount: stream.viewerCount ?? 0,
+    });
+  }
+
+  return {
+    session: playbackSession(session, stream),
+    playbackSecurity:
+      "Development mode: IVS authorized playback is false, so the playback URL is shareable until private playback authorization is added.",
+  };
+};
+
 export const endLiveSessionService = async ({ sessionId, userId }) => {
-  const session = await LiveSession.findById(sessionId);
+  const session = await findSessionById(sessionId);
 
   if (!session) {
-    throw new Error("Session not found");
+    throw makeError("Live session not found", 404);
   }
 
-  if (session.instructor.toString() !== userId) {
-    const err = new Error("Not authorized");
-    err.statusCode = 403;
-    throw err;
+  if (!idsEqual(session.instructor, userId)) {
+    throw makeError("Only the assigned instructor can end this session", 403);
   }
 
-  if (!session.isLive) {
-    throw new Error("Session is not live");
+  if (session.status === "ended") {
+    return {
+      alreadyEnded: true,
+      session: publicSession(session),
+    };
   }
 
-  session.isLive = false;
-  session.isCompleted = true;
+  if (session.ivsChannelArn) {
+    await ivsOps.stopIvsStream(session.ivsChannelArn);
+  }
+
+  session.status = "ended";
+  session.endedAt = new Date();
+  session.endedBy = userId;
+  session.viewerCount = 0;
+
   await session.save();
 
-  const populatedSession = await LiveSession.findById(sessionId)
-    .populate("course", "title")
-    .populate("instructor", "name profileImage");
+  emitLiveEvent("live-session-ended", {
+    sessionId: session._id,
+    courseId: session.course,
+  });
+  emitLiveEvent("liveClassUpdated", publicSession(session));
 
-  try {
-    const io = getIo();
-    io.emit("live-session-ended", {
-      sessionId: session._id,
-      courseId: session.course,
-    });
-    io.emit("liveClassUpdated", populatedSession);
-  } catch (err) {
-    console.error("[Socket] Failed to emit live-session-ended / liveClassUpdated:", err);
-  }
-
-  return true;
+  return {
+    alreadyEnded: false,
+    session: publicSession(session),
+  };
 };
 
-// delete session
-export const deleteLiveSessionService = async (instructorId, sessionId) => {
-  const session = await LiveSession.findById(sessionId);
+export const cancelLiveSessionService = async ({ sessionId, userId, reason = "" }) => {
+  const session = await findSessionById(sessionId, "+playbackUrl +ivsIngestEndpoint +streamKeyArn");
 
   if (!session) {
-    throw new Error("Session not found");
+    throw makeError("Live session not found", 404);
   }
 
-  if (session.instructor.toString() !== instructorId) {
-    const err = new Error("Not authorized");
-    err.statusCode = 403;
-    throw err;
+  if (!idsEqual(session.instructor, userId)) {
+    throw makeError("Only the assigned instructor can cancel this session", 403);
   }
 
-  await LiveSession.findByIdAndDelete(sessionId);
-
-  try {
-    const io = getIo();
-    io.emit("liveClassDeleted", { sessionId });
-  } catch (err) {
-    console.error("[Socket] Failed to emit liveClassDeleted:", err);
+  if (session.status === "ended") {
+    throw makeError("An ended session cannot be cancelled", 400);
   }
+
+  if (session.ivsChannelArn) {
+    await ivsOps.deleteIvsChannel(session.ivsChannelArn);
+    session.ivsChannelArn = null;
+    session.ivsChannelName = null;
+    session.ivsIngestEndpoint = null;
+    session.streamKeyArn = null;
+    session.playbackUrl = null;
+  }
+
+  session.status = "cancelled";
+  session.cancellationReason = reason.trim();
+  session.viewerCount = 0;
+
+  await session.save();
+
+  emitLiveEvent("liveClassUpdated", publicSession(session));
+
+  return publicSession(session);
+};
+
+export const deleteLiveSessionService = async (instructorId, sessionId) => {
+  const session = await findSessionById(sessionId, "+playbackUrl +ivsIngestEndpoint +streamKeyArn");
+
+  if (!session) {
+    throw makeError("Live session not found", 404);
+  }
+
+  if (!idsEqual(session.instructor, instructorId)) {
+    throw makeError("Not authorized", 403);
+  }
+
+  if (session.ivsChannelArn) {
+    await ivsOps.deleteIvsChannel(session.ivsChannelArn);
+  }
+
+  await liveSessionModel.findByIdAndDelete(sessionId);
+
+  emitLiveEvent("liveClassDeleted", { sessionId });
 
   return true;
 };

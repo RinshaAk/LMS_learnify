@@ -1,58 +1,140 @@
 import { asyncHandler } from "../middleware/trycatchmiddleware.js";
-import { 
-  createLiveSessionService, 
-  endLiveSessionService, 
-  getLiveSessionsService, 
-  startLiveSessionService, 
+import {
+  cancelLiveSessionService,
+  createLiveSessionService,
+  deleteLiveSessionService,
+  endLiveSessionService,
+  getBroadcastDetailsService,
+  getLiveSessionsService,
+  getLiveSessionStatusService,
   getMyLiveSessionsService,
-  deleteLiveSessionService
+  startLiveSessionService,
+  watchLiveSessionService,
 } from "../services/liveServices.js";
 
-
-// ✅ Create
-export const createLiveSession = asyncHandler(async (req, res, next) => {
+export const createLiveSession = asyncHandler(async (req, res) => {
   const session = await createLiveSessionService({
     ...req.body,
     instructor: req.user.id,
   });
 
-  res.status(201).json(session);
+  res.status(201).json({
+    success: true,
+    session,
+  });
 });
 
-// ✅ Get
-export const getLiveSessions = asyncHandler(async (req, res, next) => {
+export const getLiveSessions = asyncHandler(async (req, res) => {
   const sessions = await getLiveSessionsService(req.params.courseId);
-  res.json(sessions);
+
+  res.json({
+    success: true,
+    count: sessions.length,
+    sessions,
+  });
 });
 
-// ✅ Get My Live Sessions
-export const getMyLiveSessions = asyncHandler(async (req, res, next) => {
+export const getMyLiveSessions = asyncHandler(async (req, res) => {
   const sessions = await getMyLiveSessionsService(req.user.id);
-  res.json(sessions);
+
+  res.json({
+    success: true,
+    count: sessions.length,
+    sessions,
+  });
 });
 
-// ✅ Start
-export const startLiveSession = asyncHandler(async (req, res, next) => {
-  await startLiveSessionService({
+export const startLiveSession = asyncHandler(async (req, res) => {
+  const result = await startLiveSessionService({
     sessionId: req.params.id,
     userId: req.user.id,
   });
 
-  res.json({ message: "Live session started" });
+  res.json({
+    success: true,
+    message: "Broadcast channel created. Add these details to OBS and start streaming.",
+    ...result,
+  });
 });
 
-// ✅ End
-export const endLiveSession = asyncHandler(async (req, res, next) => {
-  await endLiveSessionService({
+export const getLiveSessionStatus = asyncHandler(async (req, res) => {
+  const status = await getLiveSessionStatusService({
+    sessionId: req.params.id,
+  });
+
+  res.json({
+    success: true,
+    ...status,
+  });
+});
+
+export const getBroadcastDetails = asyncHandler(async (req, res) => {
+  const broadcast = await getBroadcastDetailsService({
     sessionId: req.params.id,
     userId: req.user.id,
   });
 
-  res.json({ message: "Live session ended" });
+  res.json({
+    success: true,
+    broadcast,
+  });
 });
 
-// ✅ Delete
-export const deleteLiveSession = asyncHandler(async (req, res, next) => {
+export const watchLiveSession = asyncHandler(async (req, res) => {
+  const result = await watchLiveSessionService({
+    sessionId: req.params.id,
+    userId: req.user.id,
+    userRole: req.user.role,
+  });
+
+  res.json({
+    success: true,
+    ...result,
+  });
+});
+
+export const endLiveSession = asyncHandler(async (req, res) => {
+  const result = await endLiveSessionService({
+    sessionId: req.params.id,
+    userId: req.user.id,
+  });
+
+  const io = req.app.get("io");
+  if (io) {
+    io.to(`live:${req.params.id}`).emit("live:ended", {
+      sessionId: req.params.id,
+      endedAt: result.session?.endedAt,
+    });
+  }
+
+  res.json({
+    success: true,
+    message: result.alreadyEnded
+      ? "Live session has already ended"
+      : "Live session ended successfully",
+    session: result.session,
+  });
+});
+
+export const cancelLiveSession = asyncHandler(async (req, res) => {
+  const session = await cancelLiveSessionService({
+    sessionId: req.params.id,
+    userId: req.user.id,
+    reason: req.body.reason,
+  });
+
+  res.json({
+    success: true,
+    message: "Live session cancelled",
+    session,
+  });
+});
+
+export const deleteLiveSession = asyncHandler(async (req, res) => {
   await deleteLiveSessionService(req.user.id, req.params.id);
-  res.json({ message: "Live session deleted successfully" });
+
+  res.json({
+    success: true,
+    message: "Live session deleted successfully",
+  });
 });

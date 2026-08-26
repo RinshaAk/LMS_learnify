@@ -5,30 +5,160 @@ const liveSessionSchema = new mongoose.Schema(
     course: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Course",
+      required: true,
+      index: true,
     },
 
     instructor: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+      required: true,
+      index: true,
     },
 
-    title: String,
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 150,
+    },
 
-    startTime: Date,
+    description: {
+      type: String,
+      trim: true,
+      maxlength: 1000,
+      default: "",
+    },
 
-    isLive: {
+    scheduledAt: {
+      type: Date,
+      required: true,
+      index: true,
+    },
+
+    status: {
+      type: String,
+      enum: [
+        "scheduled",
+        "starting",
+        "live",
+        "ended",
+        "cancelled",
+        "failed",
+      ],
+      default: "scheduled",
+      index: true,
+    },
+
+    // Amazon IVS channel information
+    ivsChannelArn: {
+      type: String,
+      default: null,
+    },
+
+    ivsChannelName: {
+      type: String,
+      default: null,
+    },
+
+    ivsIngestEndpoint: {
+      type: String,
+      default: null,
+      select: false,
+    },
+
+    streamKeyArn: {
+      type: String,
+      default: null,
+      select: false,
+    },
+
+    // Never store the actual streamKeyValue here
+    playbackUrl: {
+      type: String,
+      default: null,
+      select: false,
+    },
+
+    startedAt: {
+      type: Date,
+      default: null,
+    },
+
+    endedAt: {
+      type: Date,
+      default: null,
+    },
+
+    recordingUrl: {
+      type: String,
+      default: null,
+    },
+
+    recordingStatus: {
+      type: String,
+      enum: ["not_requested", "processing", "ready", "failed"],
+      default: "not_requested",
+    },
+
+    viewerCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    peakViewerCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    chatEnabled: {
       type: Boolean,
-      default: false,
+      default: true,
     },
 
-    isCompleted: {
+    attendanceEnabled: {
       type: Boolean,
-      default: false,
+      default: true,
     },
 
-    meetingLink: String, // Zoom / WebRTC link
+    endedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+    cancellationReason: {
+      type: String,
+      trim: true,
+      maxlength: 500,
+      default: null,
+    },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    versionKey: false,
+  }
 );
 
-export const LiveSession= mongoose.model("LiveSession", liveSessionSchema);
+liveSessionSchema.index({
+  course: 1,
+  scheduledAt: -1,
+});
+
+liveSessionSchema.index({
+  instructor: 1,
+  status: 1,
+  scheduledAt: -1,
+});
+
+liveSessionSchema.index({
+  status: 1,
+  scheduledAt: 1,
+});
+
+export const LiveSession = mongoose.model(
+  "LiveSession",
+  liveSessionSchema
+);
