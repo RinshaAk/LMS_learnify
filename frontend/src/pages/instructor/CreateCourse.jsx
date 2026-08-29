@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Plus, 
-  Video, 
-  FileText, 
-  Award, 
-  PlayCircle, 
-  Upload, 
-  X, 
-  ChevronRight, 
+import {
+  Plus,
+  Video,
+  FileText,
+  Award,
+  PlayCircle,
+  Upload,
+  X,
+  ChevronRight,
   ChevronLeft,
   CheckCircle2,
   Info,
@@ -24,10 +24,10 @@ import {
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { 
-  createCourseDraft, 
-  addModule, 
-  addLesson, 
+import {
+  createCourseDraft,
+  addModule,
+  addLesson,
   publishCourse,
   uploadThumbnail,
   uploadVideo,
@@ -44,7 +44,7 @@ const CreateCourse = () => {
   const [loading, setLoading] = useState(false);
   const [courseId, setCourseId] = useState(null);
   const [categories, setCategories] = useState([]);
-  
+
   // Form States
   const [courseData, setCourseData] = useState({
     title: '',
@@ -132,9 +132,9 @@ const CreateCourse = () => {
 
   const handleAddLesson = (moduleIndex) => {
     const newModules = [...modules];
-    newModules[moduleIndex].lessons.push({ 
-      title: 'New Lesson', 
-      duration: '10:00', 
+    newModules[moduleIndex].lessons.push({
+      title: 'New Lesson',
+      duration: '10:00',
       isPreviewFree: false,
       videoUrl: '',
       uploading: false
@@ -175,17 +175,17 @@ const CreateCourse = () => {
       setModules(newModules);
 
       const result = await uploadVideo(file);
-      
+
       const updatedModules = [...modules];
       updatedModules[moduleIndex].lessons[lessonIndex].videoUrl = result.url;
       updatedModules[moduleIndex].lessons[lessonIndex].uploading = false;
       setModules(updatedModules);
-      
+
       toast.success("Video uploaded successfully!", { id: uploadToast });
     } catch (error) {
       console.error("Video upload failed:", error);
       toast.error("Failed to upload video.", { id: uploadToast });
-      
+
       const resetModules = [...modules];
       resetModules[moduleIndex].lessons[lessonIndex].uploading = false;
       setModules(resetModules);
@@ -219,13 +219,13 @@ const CreateCourse = () => {
         try {
           for (const mod of modules) {
             let currentModId = mod._id;
-            
+
             // 1. Create Module if it doesn't exist
             if (!currentModId) {
               const modResult = await addModule(courseId, { title: mod.title });
               currentModId = modResult.module._id;
             }
-            
+
             // 2. Create or Update Lessons for this module
             for (const lesson of mod.lessons) {
               const lessonPayload = {
@@ -341,30 +341,30 @@ const CreateCourse = () => {
             <div className="grid gap-6">
               <div className="space-y-2">
                 <label className="text-sm font-black text-slate-900 uppercase tracking-widest">Course Title</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   name="title"
                   value={courseData.title}
                   onChange={handleInputChange}
-                  placeholder="e.g. Mastering Advanced React Patterns" 
+                  placeholder="e.g. Mastering Advanced React Patterns"
                   className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all font-bold text-slate-700"
                 />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-black text-slate-900 uppercase tracking-widest">Description</label>
-                <textarea 
-                  rows="5" 
+                <textarea
+                  rows="5"
                   name="description"
                   value={courseData.description}
                   onChange={handleInputChange}
-                  placeholder="Describe what students will learn..." 
+                  placeholder="Describe what students will learn..."
                   className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none font-medium text-slate-600"
                 ></textarea>
               </div>
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-sm font-black text-slate-900 uppercase tracking-widest">Category</label>
-                  <select 
+                  <select
                     name="category"
                     value={courseData.category}
                     onChange={handleInputChange}
@@ -386,7 +386,7 @@ const CreateCourse = () => {
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-black text-slate-900 uppercase tracking-widest">Level</label>
-                  <select 
+                  <select
                     name="level"
                     value={courseData.level}
                     onChange={handleInputChange}
@@ -403,14 +403,14 @@ const CreateCourse = () => {
             <div className="space-y-4">
               <label className="text-sm font-black text-slate-900 uppercase tracking-widest">Course Thumbnail</label>
               <div className="relative">
-                <input 
-                  type="file" 
+                <input
+                  type="file"
                   id="thumbnail-upload"
                   className="hidden"
                   accept="image/*"
                   onChange={handleThumbnailUpload}
                 />
-                <label 
+                <label
                   htmlFor="thumbnail-upload"
                   className={`border-4 border-dashed rounded-[2.5rem] p-12 text-center space-y-4 hover:border-blue-200 transition-all cursor-pointer group flex flex-col items-center justify-center min-h-[300px] overflow-hidden ${
                     uploadingThumbnail ? 'bg-slate-50 border-blue-200' : 'border-slate-100 bg-white'
@@ -449,7 +449,7 @@ const CreateCourse = () => {
           <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex items-center justify-between">
               <h3 className="text-xl font-bold text-slate-900">Modules & Lessons</h3>
-              <button 
+              <button
                 onClick={handleAddModule}
                 className="flex items-center gap-2 text-blue-600 font-bold text-sm hover:underline"
               >
@@ -463,8 +463,8 @@ const CreateCourse = () => {
                   <div className="bg-slate-50 p-6 flex items-center justify-between border-b border-slate-100">
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center font-black text-slate-900 shadow-sm">{mIdx + 1}</div>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={m.title}
                         onChange={(e) => {
                           const newMods = [...modules];
@@ -474,7 +474,7 @@ const CreateCourse = () => {
                         className="bg-transparent border-none font-bold text-slate-900 focus:ring-0 text-lg"
                       />
                     </div>
-                    <button 
+                    <button
                       onClick={() => setModules(modules.filter((_, i) => i !== mIdx))}
                       className="p-2 text-slate-400 hover:text-red-500 transition-all"
                     >
@@ -491,7 +491,7 @@ const CreateCourse = () => {
                               <PlayCircle size={18} />
                             </div>
                           </div>
-                          <input 
+                          <input
                             type="text"
                             value={l.title}
                             onChange={(e) => {
@@ -504,7 +504,7 @@ const CreateCourse = () => {
                         </div>
                         {l.showResourceInput && (
                           <div className="flex-1 mx-4">
-                            <input 
+                            <input
                               type="text"
                               placeholder="Paste resource link (GitHub, PDF, etc.)"
                               value={l.resourceUrl || ''}
@@ -518,7 +518,7 @@ const CreateCourse = () => {
                           </div>
                         )}
                         <div className="flex items-center gap-4">
-                          <button 
+                          <button
                             onClick={() => {
                               const newMods = [...modules];
                               newMods[mIdx].lessons[lIdx].showResourceInput = !newMods[mIdx].lessons[lIdx].showResourceInput;
@@ -531,14 +531,14 @@ const CreateCourse = () => {
                             <LinkIcon size={16} />
                           </button>
                           <div className="relative">
-                            <input 
-                              type="file" 
+                            <input
+                              type="file"
                               id={`video-upload-${mIdx}-${lIdx}`}
                               className="hidden"
                               accept="video/*"
                               onChange={(e) => handleVideoUpload(mIdx, lIdx, e)}
                             />
-                            <label 
+                            <label
                               htmlFor={`video-upload-${mIdx}-${lIdx}`}
                               className={`p-2 rounded-lg transition-all cursor-pointer flex items-center gap-2 ${
                                 l.videoUrl ? 'text-green-600 bg-green-50' : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50'
@@ -559,7 +559,7 @@ const CreateCourse = () => {
                         </div>
                       </div>
                     ))}
-                    <button 
+                    <button
                       onClick={() => handleAddLesson(mIdx)}
                       className="w-full py-3 border-2 border-dashed border-slate-100 rounded-2xl text-slate-400 text-xs font-bold hover:border-blue-200 hover:text-blue-600 transition-all flex items-center justify-center gap-2"
                     >
@@ -579,12 +579,12 @@ const CreateCourse = () => {
                   <label className="text-sm font-black text-slate-900 uppercase tracking-widest">Base Price (₹)</label>
                   <div className="relative">
                     <IndianRupee size={18} className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <input 
-                      type="number" 
+                    <input
+                      type="number"
                       name="price"
                       value={courseData.price}
                       onChange={handleInputChange}
-                      placeholder="2499" 
+                      placeholder="2499"
                       className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all font-bold"
                     />
                   </div>
@@ -593,12 +593,12 @@ const CreateCourse = () => {
                   <label className="text-sm font-black text-slate-900 uppercase tracking-widest">Introductory Offer (Optional)</label>
                   <div className="relative">
                     <IndianRupee size={18} className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <input 
-                      type="number" 
+                    <input
+                      type="number"
                       name="discountPrice"
                       value={courseData.discountPrice}
                       onChange={handleInputChange}
-                      placeholder="1999" 
+                      placeholder="1999"
                       className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all font-bold"
                     />
                   </div>
@@ -609,7 +609,7 @@ const CreateCourse = () => {
                <Info className="text-blue-600 flex-shrink-0" size={20} />
                <div className="space-y-2">
                   <p className="text-xs font-black text-blue-900 uppercase tracking-widest">Pricing Policy</p>
-                  <p className="text-sm text-blue-700 leading-relaxed font-medium">Learnify takes a 20% platform fee on each sale. This fee covers hosting, marketing, and transaction processing. You keep 80% of the revenue.</p>
+                  <p className="text-sm text-blue-700 leading-relaxed font-medium">StackVerseHub takes a 20% platform fee on each sale. This fee covers hosting, marketing, and transaction processing. You keep 80% of the revenue.</p>
                </div>
             </div>
           </div>
@@ -672,7 +672,7 @@ const CreateCourse = () => {
 
         {/* Navigation Buttons */}
         <div className="pt-10 border-t border-slate-50 flex items-center justify-between">
-          <button 
+          <button
             disabled={step === 1 || loading}
             onClick={() => setStep(step - 1)}
             className={`px-8 py-4 rounded-2xl font-bold text-sm flex items-center gap-2 transition-all ${
@@ -681,8 +681,8 @@ const CreateCourse = () => {
           >
             <ChevronLeft size={18} /> Previous Step
           </button>
-          
-          <button 
+
+          <button
             onClick={handleNextStep}
             disabled={loading}
             className={`px-10 py-4 ${step === 4 ? 'bg-blue-600' : 'bg-slate-900'} text-white rounded-2xl font-bold text-sm hover:opacity-90 shadow-xl shadow-slate-100 transition-all flex items-center gap-2 active:scale-95 disabled:opacity-50`}

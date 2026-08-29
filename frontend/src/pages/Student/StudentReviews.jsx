@@ -18,17 +18,17 @@ import axiosInstance from '../../features/axiosInstance';
 const StudentReviews = () => {
   const dispatch = useDispatch();
   const { dashboardData, loading } = useSelector((state) => state.student);
-  
+
   const [upcomingReviews, setUpcomingReviews] = useState([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [activeRoomId, setActiveRoomId] = useState(null);
 
   const getRoomIdFromLink = (link) => {
-    if (!link) return 'learnify-room';
+    if (!link) return 'stackversehub-room';
     try {
       if (link.startsWith('http://') || link.startsWith('https://')) {
         const url = new URL(link);
-        return url.pathname.replace(/^\//, '') || 'learnify-room';
+        return url.pathname.replace(/^\//, '') || 'stackversehub-room';
       }
       return link;
     } catch (e) {
@@ -125,14 +125,14 @@ const StudentReviews = () => {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-10">
-        
+
         {/* Main Content Area */}
         <div className="lg:col-span-2 space-y-10">
-          
+
           {/* Upcoming Review Sessions */}
           <div className="space-y-6">
             <h3 className="text-xl font-black text-slate-900">Upcoming Review Sessions</h3>
-            
+
             <div className="space-y-4">
               {loadingReviews ? (
                 <div className="py-16 text-center bg-white rounded-[2.5rem] border border-slate-200">
@@ -150,7 +150,7 @@ const StudentReviews = () => {
                 activeReviews.map((item) => (
                   <div key={item._id} className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:border-blue-300 transition-all group p-6 md:p-8">
                     <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                      
+
                       <div className="flex items-center gap-5 w-full md:w-auto">
                         <div className="w-16 h-16 rounded-2xl flex flex-col items-center justify-center border-2 border-slate-100 text-slate-500 bg-slate-50 shrink-0">
                           <Calendar size={20} />
@@ -184,7 +184,7 @@ const StudentReviews = () => {
 
                         {item.status === 'Scheduled' || item.status === 'Pending' ? (
                           <div className="flex items-center gap-3">
-                            <button 
+                            <button
                               type="button"
                               onClick={() => {
                                 const room = getRoomIdFromLink(item.meetingLink);
@@ -222,7 +222,7 @@ const StudentReviews = () => {
 
         {/* Sidebar Guidelines & History */}
         <div className="space-y-10">
-          
+
           {/* Rules Card */}
           <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-xl">
             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600 rounded-full -mr-16 -mt-16 opacity-50 blur-3xl"></div>

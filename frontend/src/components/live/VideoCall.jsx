@@ -18,7 +18,7 @@ const VideoCall = ({ roomId: propRoomId, onEndCall }) => {
   const [isConnected, setIsConnected] = useState(false);
 
   const searchParams = new URLSearchParams(window.location.search);
-  const roomId = propRoomId || searchParams.get("room") || "learnify-room";
+  const roomId = propRoomId || searchParams.get("room") || "stackversehub-room";
   const { socket } = useSocket();
 
   useEffect(() => {
@@ -132,7 +132,7 @@ const VideoCall = ({ roomId: propRoomId, onEndCall }) => {
       if (!peerConnection.current) return;
       try {
         await peerConnection.current.setRemoteDescription(new RTCSessionDescription(offer));
-        
+
         // Drain ICE candidate queue if any arrived early
         while (iceCandidateQueue.current.length > 0) {
           const candidate = iceCandidateQueue.current.shift();
@@ -152,7 +152,7 @@ const VideoCall = ({ roomId: propRoomId, onEndCall }) => {
       if (!peerConnection.current) return;
       try {
         await peerConnection.current.setRemoteDescription(new RTCSessionDescription(answer));
-        
+
         // Drain ICE candidate queue if any arrived early
         while (iceCandidateQueue.current.length > 0) {
           const candidate = iceCandidateQueue.current.shift();
@@ -308,7 +308,7 @@ const VideoCall = ({ roomId: propRoomId, onEndCall }) => {
             <Users className="text-white w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-white tracking-tight">Learnify Live Classroom</h1>
+            <h1 className="text-lg font-bold text-white tracking-tight">StackVerseHub Live Classroom</h1>
             <p className="text-xs text-slate-400 font-medium flex items-center gap-1.5 mt-0.5">
               <span className={`w-2 h-2 rounded-full ${isConnected ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`}></span>
               {isConnected ? "Connected to Peer" : "Waiting for Peer to join..."}
@@ -375,8 +375,8 @@ const VideoCall = ({ roomId: propRoomId, onEndCall }) => {
         <button
           onClick={toggleMute}
           className={`p-4 rounded-full transition-all duration-300 flex items-center justify-center shadow-lg ${
-            isMuted 
-              ? "bg-rose-500 text-white hover:bg-rose-600 shadow-rose-500/30" 
+            isMuted
+              ? "bg-rose-500 text-white hover:bg-rose-600 shadow-rose-500/30"
               : "bg-slate-800 text-slate-200 hover:bg-slate-700 hover:text-white border border-slate-700/50"
           }`}
           title={isMuted ? "Unmute Microphone" : "Mute Microphone"}
@@ -387,8 +387,8 @@ const VideoCall = ({ roomId: propRoomId, onEndCall }) => {
         <button
           onClick={toggleVideo}
           className={`p-4 rounded-full transition-all duration-300 flex items-center justify-center shadow-lg ${
-            isVideoOff 
-              ? "bg-rose-500 text-white hover:bg-rose-600 shadow-rose-500/30" 
+            isVideoOff
+              ? "bg-rose-500 text-white hover:bg-rose-600 shadow-rose-500/30"
               : "bg-slate-800 text-slate-200 hover:bg-slate-700 hover:text-white border border-slate-700/50"
           }`}
           title={isVideoOff ? "Turn Camera On" : "Turn Camera Off"}

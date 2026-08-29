@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { 
-  Award, 
-  Download, 
-  ExternalLink, 
-  Clock, 
-  Lock, 
+import {
+  Award,
+  Download,
+  ExternalLink,
+  Clock,
+  Lock,
   Search,
   CheckCircle2,
   Calendar,
@@ -61,7 +61,7 @@ const Certificates = () => {
     return !certificateCourseIds.includes(course._id);
   });
 
-  const filteredCertificates = certificates.filter(cert => 
+  const filteredCertificates = certificates.filter(cert =>
     cert.certificateId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     cert.course?.title?.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -117,7 +117,7 @@ const Certificates = () => {
           <AlertCircle className="w-12 h-12 text-red-500" />
           <h3 className="text-xl font-bold text-slate-900">Oops! Something went wrong</h3>
           <p className="text-slate-500 max-w-md">{error}</p>
-          <button 
+          <button
             onClick={fetchData}
             className="mt-2 px-6 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all"
           >
@@ -175,16 +175,16 @@ const Certificates = () => {
               {filteredCertificates.map((cert) => (
                 <div key={cert._id} className="bg-white rounded-3xl border border-slate-200 flex flex-col md:flex-row overflow-hidden hover:border-blue-300 transition-all group">
                   <div className="w-full md:w-40 h-40 md:h-auto relative bg-slate-900 flex-shrink-0 border-r border-slate-100">
-                    <img 
-                      src={cert.course?.thumbnail || "https://images.unsplash.com/photo-1561070791-2526d30994b5?auto=format&fit=crop&w=600&q=80"} 
-                      alt={cert.course?.title} 
-                      className="w-full h-full object-cover opacity-50" 
+                    <img
+                      src={cert.course?.thumbnail || "https://images.unsplash.com/photo-1561070791-2526d30994b5?auto=format&fit=crop&w=600&q=80"}
+                      alt={cert.course?.title}
+                      className="w-full h-full object-cover opacity-50"
                     />
                     <div className="absolute inset-0 flex items-center justify-center">
                       <Award className="text-white opacity-80" size={40} />
                     </div>
                   </div>
-                  
+
                   <div className="flex-1 p-6 flex flex-col justify-between space-y-6">
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
@@ -198,7 +198,7 @@ const Certificates = () => {
                         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">ID: {cert.certificateId}</span>
                       </div>
                       <h4 className="text-md font-bold text-slate-900 leading-tight line-clamp-2">{cert.course?.title}</h4>
-                      
+
                       <div className="grid grid-cols-2 gap-4 pt-2">
                         <div>
                           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Instructor</p>
@@ -214,7 +214,7 @@ const Certificates = () => {
                     <div className="flex items-center gap-3 pt-4 border-t border-slate-50">
                       {(cert.status === 'approved' || cert.status === 'issued') ? (
                         <>
-                          <button 
+                          <button
                             disabled={loadingCertId !== null}
                             onClick={() => handleDownload(cert._id)}
                             className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex-1 py-3 text-xs font-bold flex items-center justify-center gap-2 active:scale-95 shadow-lg shadow-blue-100 transition-all disabled:opacity-50"
@@ -222,7 +222,7 @@ const Certificates = () => {
                             <Download size={14} />
                             Download PDF
                           </button>
-                          <button 
+                          <button
                             disabled={loadingCertId !== null}
                             onClick={() => handlePreview(cert)}
                             className="p-3 bg-slate-50 text-slate-500 rounded-xl hover:bg-slate-100 transition-colors border border-slate-200 text-xs font-bold flex items-center gap-1.5 disabled:opacity-50"
@@ -241,7 +241,7 @@ const Certificates = () => {
                           <div className="text-xs font-bold text-amber-600 bg-amber-50 p-3 rounded-xl border border-amber-100 flex-1 text-center flex items-center justify-center gap-1.5 animate-pulse">
                             <Clock size={14} /> Awaiting Approval
                           </div>
-                          <button 
+                          <button
                             disabled={loadingCertId !== null}
                             onClick={() => handlePreview(cert)}
                             className="p-3 bg-slate-50 text-slate-500 rounded-xl hover:bg-slate-100 transition-colors border border-slate-200 text-xs font-bold flex items-center gap-1.5 disabled:opacity-50"
@@ -269,7 +269,7 @@ const Certificates = () => {
               {pendingCourses.map((enrollment) => {
                 const course = enrollment.course || enrollment;
                 const isCompleted = enrollment.completed;
-                
+
                 // Find matching exam for this course
                 const courseExams = exams.filter(e => (e.course?._id || e.course) === course._id);
                 const passedExam = courseExams.find(e => e.latestResult === 'pass');
@@ -288,8 +288,8 @@ const Certificates = () => {
                             <span>{isCompleted ? '100%' : 'Not Completed'}</span>
                           </div>
                           <div className="h-1 bg-slate-200 rounded-full overflow-hidden">
-                            <div 
-                              className={`h-full ${isCompleted ? 'bg-green-500' : 'bg-blue-600'}`} 
+                            <div
+                              className={`h-full ${isCompleted ? 'bg-green-500' : 'bg-blue-600'}`}
                               style={{ width: isCompleted ? '100%' : '50%' }}
                             ></div>
                           </div>
@@ -300,7 +300,7 @@ const Certificates = () => {
                     {isCompleted && (
                       <div className="pt-2">
                         {passedExam ? (
-                          <button 
+                          <button
                             disabled={claiming}
                             onClick={() => handleClaim(passedExam._id)}
                             className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-md transition-all active:scale-95 disabled:bg-blue-400 flex items-center justify-center gap-1.5"
@@ -330,7 +330,7 @@ const Certificates = () => {
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-6 overflow-y-auto">
           <div className="bg-white rounded-[2.5rem] w-full max-w-4xl shadow-2xl p-6 md:p-8 relative flex flex-col items-center my-auto">
             {/* Close Button */}
-            <button 
+            <button
               onClick={() => setPreviewCert(null)}
               className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all rounded-full text-lg font-bold"
             >
@@ -344,12 +344,12 @@ const Certificates = () => {
               <div className="absolute top-4 right-4 w-12 h-12 border-t-2 border-r-2 border-amber-600"></div>
               <div className="absolute bottom-4 left-4 w-12 h-12 border-b-2 border-l-2 border-amber-600"></div>
               <div className="absolute bottom-4 right-4 w-12 h-12 border-b-2 border-r-2 border-amber-600"></div>
-              
+
               <div className="absolute inset-4 border border-amber-700/30"></div>
 
               {/* Brand Header */}
               <div className="flex flex-col items-center mt-1">
-                <img src="/logo.png" alt="Learnify" className="h-8 md:h-10 w-auto object-contain" />
+                <img src="/logo.png" alt="StackVerseHub" className="h-8 md:h-10 w-auto object-contain" />
                 <h2 className="text-xl md:text-3xl font-black text-slate-900 tracking-tight font-sans mt-1">CERTIFICATE OF COMPLETION</h2>
                 <p className="text-slate-400 text-xs italic font-serif mt-0.5">This is proudly presented to</p>
               </div>
@@ -410,14 +410,14 @@ const Certificates = () => {
 
             {/* Action Buttons */}
             <div className="flex gap-4 mt-6 w-full">
-              <button 
+              <button
                 onClick={() => setPreviewCert(null)}
                 className="w-1/2 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-sm transition-all"
               >
                 Close Preview
               </button>
               {(previewCert.status === "approved" || previewCert.status === "issued") && (
-                <button 
+                <button
                   onClick={() => {
                     handleDownload(previewCert._id);
                     setPreviewCert(null);

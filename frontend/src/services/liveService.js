@@ -35,6 +35,11 @@ export const getLiveSessionStatus = async (id) => {
   return response.data;
 };
 
+export const watchLiveSession = async (id) => {
+  const response = await axiosInstance.get(`/live/${id}/watch`);
+  return response.data;
+};
+
 export const getBroadcastDetails = async (id) => {
   const response = await axiosInstance.get(`/live/${id}/broadcast`);
   return response.data;
@@ -61,6 +66,7 @@ export default {
   createLiveSession,
   startLiveSession,
   getLiveSessionStatus,
+  watchLiveSession,
   getBroadcastDetails,
   endLiveSession,
   cancelLiveSession,

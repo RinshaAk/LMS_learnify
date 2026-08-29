@@ -107,6 +107,7 @@ function App() {
             <Route path="buy-courses" element={<BuyCourses />} />
             <Route path="live-classes" element={<LiveClasses />} />
             <Route path="live-chat" element={<LiveRoom />} />
+            <Route path="live-chat/:id" element={<LiveRoom />} />
             <Route path="messages" element={<StudentMessage />} />
             <Route path="exams" element={<Exams />} />
             <Route path="reviews" element={<StudentReviews />} />

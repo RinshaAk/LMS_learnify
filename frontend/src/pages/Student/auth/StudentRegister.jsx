@@ -8,6 +8,34 @@ import { User, Mail, Lock, Eye, EyeOff, ShieldCheck, ArrowRight, CheckCircle2 } 
 import { toast } from 'react-hot-toast';
 import { clearState } from "../../../features/auth/authSlice";
 
+const getRegistrationErrorMessage = (err) => {
+  const message = typeof err === "string" ? err : err?.message || "";
+  const normalized = message.toLowerCase();
+
+  if (
+    normalized.includes("gmail app password") ||
+    normalized.includes("email authentication failed") ||
+    normalized.includes("email service") ||
+    normalized.includes("unable to send verification email")
+  ) {
+    return "We couldn't send the verification code because StackVerseHub's email service is not working right now. Your account was not created yet. Please try again later or contact support.";
+  }
+
+  if (normalized.includes("user already registered")) {
+    return "This email is already registered. Please sign in instead, or use Forgot Password if you cannot access your account.";
+  }
+
+  if (normalized.includes("verify otp")) {
+    return "Please verify your email with the 6-digit code before completing registration.";
+  }
+
+  if (normalized.includes("invalid otp")) {
+    return "The verification code does not match. Please check the 6-digit code and try again.";
+  }
+
+  return message || "Registration failed. Please try again.";
+};
+
 function Register() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -73,15 +101,15 @@ function Register() {
           password: values.password,
           role: "student",
         }));
-        
+
         if (result.type === "auth/registerUser/fulfilled") {
-          toast.success("Registration successful! Welcome to Learnify.");
+          toast.success("Registration successful! Welcome to StackVerseHub.");
           navigate("/student/dashboard");
         } else {
-          toast.error(result.payload || "Registration failed. Please try again.");
+          toast.error(getRegistrationErrorMessage(result.payload));
         }
       } catch (err) {
-        toast.error("Registration failed. Please try again.");
+        toast.error(getRegistrationErrorMessage(err));
       }
     },
   });
@@ -101,8 +129,12 @@ function Register() {
   const handleSendOtp = async () => {
     if (loading) return;
 
-    if (!formik.values.email || !formik.values.name) {
-      return setError("Please provide your name and email address to receive a code.");
+    formik.setFieldTouched("name", true);
+    formik.setFieldTouched("email", true);
+
+    const validationErrors = await formik.validateForm();
+    if (validationErrors.name || validationErrors.email) {
+      return setError("Please enter a valid name and email address before requesting a verification code.");
     }
 
     try {
@@ -112,7 +144,7 @@ function Register() {
       setError("");
     } catch (err) {
       console.error("OTP send error:", err);
-      setError(err?.message || err || "Failed to send verification code. Please check your email.");
+      setError(getRegistrationErrorMessage(err));
     }
   };
 
@@ -125,7 +157,7 @@ function Register() {
       setTimer(30);
       setError("");
     } catch (err) {
-      setError(err?.message || err || "Failed to resend code.");
+      setError(getRegistrationErrorMessage(err));
     }
   };
 
@@ -189,7 +221,7 @@ function Register() {
         <div className="w-full max-w-md">
           {/* Header for Mobile */}
           <div className="lg:hidden mb-8 flex items-center justify-center">
-            <img src="/logo.png" alt="Learnify" className="h-10 w-auto" />
+            <img src="/logo.png" alt="StackVerseHub" className="h-10 w-auto" />
           </div>
 
           <div className="mb-8">
@@ -199,7 +231,7 @@ function Register() {
               </span>
             </div>
             <h2 className="text-3xl font-extrabold mb-2">Create Account</h2>
-            <p className="text-slate-500">Join thousands of students learning on Learnify.</p>
+            <p className="text-slate-500">Join thousands of students learning on StackVerseHub.</p>
           </div>
 
           {error && (

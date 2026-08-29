@@ -1,4 +1,4 @@
-# Learnify — E-Learning Management System
+# StackVerseHub — E-Learning Management System
 
 > A production-oriented full-stack e-learning platform designed to connect **students, instructors, and administrators** through a secure, scalable, and interactive learning experience.
 
@@ -8,7 +8,7 @@
 
 ## Overview
 
-**Learnify** is a full-stack Learning Management System (LMS) built to provide a complete digital learning environment for students, instructors, and administrators.
+**StackVerseHub** is a full-stack Learning Management System (LMS) built to provide a complete digital learning environment for students, instructors, and administrators.
 
 The platform supports the complete learning lifecycle — from authentication and course management to payments, live classes, real-time communication, notifications, and certificate generation.
 
@@ -194,7 +194,7 @@ Authentication
 
 ## Security
 
-Learnify implements multiple layers of application security:
+StackVerseHub implements multiple layers of application security:
 
 * JWT authentication
 * Protected API endpoints
@@ -214,7 +214,7 @@ Learnify implements multiple layers of application security:
 ## Project Structure
 
 ```text
-learnify/
+stackversehub/
 │
 ├── frontend/
 │   ├── src/
@@ -244,7 +244,7 @@ learnify/
 
 ## REST API
 
-Learnify follows a modular REST API architecture.
+StackVerseHub follows a modular REST API architecture.
 
 Example API modules:
 
@@ -275,7 +275,7 @@ The API layer is responsible for:
 
 ## Real-Time Communication
 
-Learnify uses **Socket.IO** for real-time application functionality.
+StackVerseHub uses **Socket.IO** for real-time application functionality.
 
 ```text
 Client
@@ -395,8 +395,8 @@ RAZORPAY_KEY_SECRET=your_razorpay_secret
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/learnify.git
-cd learnify
+git clone https://github.com/your-username/stackversehub.git
+cd stackversehub
 ```
 
 ### 2. Install Dependencies
@@ -437,7 +437,7 @@ The application will then be available locally.
 
 ## Development Highlights
 
-Learnify was built with a focus on real-world full-stack development practices, including:
+StackVerseHub was built with a focus on real-world full-stack development practices, including:
 
 * Modular backend architecture
 * RESTful API design
@@ -491,7 +491,7 @@ docs/
 
 ## What I Learned
 
-Building Learnify provided practical experience in designing and developing a complete full-stack application.
+Building StackVerseHub provided practical experience in designing and developing a complete full-stack application.
 
 Key areas of learning included:
 

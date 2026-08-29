@@ -42,7 +42,7 @@ const StudentCourses = () => {
     if (!acc[instructorId]) {
       acc[instructorId] = {
         id: instructorId,
-        name: instructor?.name || 'Learnify Instructor',
+        name: instructor?.name || 'StackVerseHub Instructor',
         avatar: instructor?.profileImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(instructor?.name || 'Instructor')}&background=7c3aed&color=fff`,
         expertise: instructor?.verificationDetails?.expertise || 'Certified Instructor',
         rating: 4.8, // Fallback rating
@@ -152,7 +152,7 @@ const StudentCourses = () => {
               </div>
             </div>
             <div className="flex items-center gap-2.5 w-full md:w-auto">
-              <button 
+              <button
                 onClick={() => navigate('/student/messages')}
                 className="flex-1 md:flex-none btn-primary py-2.5 px-6 text-xs uppercase tracking-wider rounded-xl shadow-md shadow-primary-600/5"
               >
@@ -177,10 +177,10 @@ const StudentCourses = () => {
                     </div>
                   )}
                 </div>
-                
+
                 <div className="flex-1 p-6 flex flex-col justify-between space-y-4">
                   <div className="space-y-2">
-                    <h4 
+                    <h4
                       onClick={() => navigate(`/student/player/${course.courseId}`)}
                       className="font-extrabold text-slate-900 text-sm leading-snug line-clamp-2 hover:text-primary-600 transition-colors cursor-pointer"
                     >
@@ -204,17 +204,17 @@ const StudentCourses = () => {
                           <span className={course.progress === 100 ? 'text-emerald-600' : 'text-primary-600'}>{course.progress}%</span>
                         </div>
                         <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full rounded-full transition-all duration-700 ${course.progress === 100 ? 'bg-emerald-500' : 'bg-primary-600'}`} 
+                          <div
+                            className={`h-full rounded-full transition-all duration-700 ${course.progress === 100 ? 'bg-emerald-500' : 'bg-primary-600'}`}
                             style={{ width: `${course.progress}%` }}
                           ></div>
                         </div>
                       </div>
-                      <button 
+                      <button
                         onClick={() => navigate(`/student/player/${course.courseId}`)}
                         className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all shrink-0 border ${
-                          course.progress === 100 
-                          ? 'bg-emerald-50 text-emerald-600 border-emerald-100/50 hover:bg-emerald-600 hover:text-white' 
+                          course.progress === 100
+                          ? 'bg-emerald-50 text-emerald-600 border-emerald-100/50 hover:bg-emerald-600 hover:text-white'
                           : 'bg-primary-50 text-primary-600 border-primary-100/50 hover:bg-primary-600 hover:text-white'
                         }`}
                       >

@@ -55,7 +55,7 @@ const baseHtml = ({ title, badge, children }) => `
     <div style="max-width:640px;margin:0 auto;padding:28px 16px;">
       <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;">
         <div style="padding:24px 28px;background:#2563eb;color:#ffffff;">
-          <h1 style="margin:0;font-size:24px;line-height:1.25;">Learnify</h1>
+          <h1 style="margin:0;font-size:24px;line-height:1.25;">StackVerseHub</h1>
           <p style="margin:8px 0 0;font-size:14px;opacity:.9;">${escapeHtml(title)}</p>
         </div>
         <div style="padding:28px;">
@@ -78,7 +78,7 @@ export const buildAdminInstructorRegistrationEmail = (user) => {
     children: `
       <p style="margin:24px 0 12px;">Hello Admin,</p>
       <p style="margin:0 0 18px;line-height:1.6;">
-        A new instructor has successfully submitted a registration application on Learnify.
+        A new instructor has successfully submitted a registration application on StackVerseHub.
       </p>
       <table style="width:100%;border-collapse:collapse;margin:20px 0;border:1px solid #e2e8f0;">
         <style>
@@ -89,10 +89,10 @@ export const buildAdminInstructorRegistrationEmail = (user) => {
         <tbody>${detailRows(details)}</tbody>
       </table>
       <p style="margin:18px 0 0;line-height:1.6;">
-        Please review the instructor's application and arrange an interview when appropriate. After completing the interview and verification process, you can approve or reject the application through the Learnify admin dashboard.
+        Please review the instructor's application and arrange an interview when appropriate. After completing the interview and verification process, you can approve or reject the application through the StackVerseHub admin dashboard.
       </p>
       <p style="margin:24px 0 0;line-height:1.6;">
-        Regards,<br />Learnify Notification System
+        Regards,<br />StackVerseHub Notification System
       </p>
     `,
   });
@@ -100,21 +100,21 @@ export const buildAdminInstructorRegistrationEmail = (user) => {
   const text = [
     "Hello Admin,",
     "",
-    "A new instructor has successfully submitted a registration application on Learnify.",
+    "A new instructor has successfully submitted a registration application on StackVerseHub.",
     "",
     "Instructor details:",
     ...details
       .filter(([, value]) => value)
       .map(([label, value]) => `${label}: ${value}`),
     "",
-    "Please review the instructor's application and arrange an interview when appropriate. After completing the interview and verification process, you can approve or reject the application through the Learnify admin dashboard.",
+    "Please review the instructor's application and arrange an interview when appropriate. After completing the interview and verification process, you can approve or reject the application through the StackVerseHub admin dashboard.",
     "",
     "Regards,",
-    "Learnify Notification System",
+    "StackVerseHub Notification System",
   ].join("\n");
 
   return {
-    subject: "New Instructor Registration Awaiting Review — Learnify",
+    subject: "New Instructor Registration Awaiting Review — StackVerseHub",
     html,
     text,
   };
@@ -128,20 +128,20 @@ export const buildInstructorRegistrationConfirmationEmail = (user) => {
     badge: "Application Pending",
     children: `
       <p style="margin:24px 0 12px;">Hello ${escapeHtml(instructorName)},</p>
-      <p style="margin:0 0 16px;line-height:1.6;">Thank you for applying to become an instructor on Learnify.</p>
+      <p style="margin:0 0 16px;line-height:1.6;">Thank you for applying to become an instructor on StackVerseHub.</p>
       <p style="margin:0 0 16px;line-height:1.6;">Your registration has been submitted successfully and forwarded to our administration team for review.</p>
       <p style="margin:0 0 16px;line-height:1.6;">Our team will review the information you provided. If your application meets the initial requirements, we will contact you with the interview details. Following the interview and verification process, the administration team will notify you whether your instructor account has been approved.</p>
       <p style="margin:0 0 16px;line-height:1.6;">Until the review is completed, your application status will remain Pending.</p>
       <p style="margin:0 0 16px;line-height:1.6;">Please monitor this email address for further updates. You do not need to submit another registration application.</p>
-      <p style="margin:0 0 20px;line-height:1.6;">We appreciate your interest in contributing to the Learnify learning community.</p>
-      <p style="margin:24px 0 0;line-height:1.6;">Regards,<br />The Learnify Team</p>
+      <p style="margin:0 0 20px;line-height:1.6;">We appreciate your interest in contributing to the StackVerseHub learning community.</p>
+      <p style="margin:24px 0 0;line-height:1.6;">Regards,<br />The StackVerseHub Team</p>
     `,
   });
 
   const text = [
     `Hello ${instructorName},`,
     "",
-    "Thank you for applying to become an instructor on Learnify.",
+    "Thank you for applying to become an instructor on StackVerseHub.",
     "",
     "Your registration has been submitted successfully and forwarded to our administration team for review.",
     "",
@@ -151,14 +151,14 @@ export const buildInstructorRegistrationConfirmationEmail = (user) => {
     "",
     "Please monitor this email address for further updates. You do not need to submit another registration application.",
     "",
-    "We appreciate your interest in contributing to the Learnify learning community.",
+    "We appreciate your interest in contributing to the StackVerseHub learning community.",
     "",
     "Regards,",
-    "The Learnify Team",
+    "The StackVerseHub Team",
   ].join("\n");
 
   return {
-    subject: "Instructor Application Received — Learnify",
+    subject: "Instructor Application Received — StackVerseHub",
     html,
     text,
   };

@@ -42,14 +42,14 @@ export const getAllCoursesAdminService = async () => {
 export const deleteCourseAdminService = async (courseId) => {
   const course = await Course.findById(courseId);
   if (!course) throw new Error("Course not found");
-  
+
   // Delete all related data
   await Module.deleteMany({ courseId });
   await Lesson.deleteMany({ courseId });
   await Enrollment.deleteMany({ course: courseId });
   await Exam.deleteMany({ course: courseId });
   await ExamAttempt.deleteMany({ course: courseId });
-  
+
   await course.deleteOne();
   return true;
 };
@@ -57,7 +57,7 @@ export const deleteCourseAdminService = async (courseId) => {
 export const updateCourseStatusService = async (courseId, status) => {
   const course = await Course.findById(courseId);
   if (!course) throw new Error("Course not found");
-  
+
   if (status === "approved" || status === "rejected" || status === "pending") {
     course.approvalStatus = status;
     if (status === "rejected") {
@@ -72,16 +72,16 @@ export const updateCourseStatusService = async (courseId, status) => {
   } else if (status === "published" || status === "draft") {
     course.status = status;
   }
-  
+
   await course.save();
   return course;
 };
 
 // ✅ Instructor management
 export const getInstructorRequestsService = async () => {
-  return await User.find({ 
-    role: "instructor", 
-    approvalStatus: "pending" 
+  return await User.find({
+    role: "instructor",
+    approvalStatus: "pending"
   }).select("-password");
 };
 
@@ -97,12 +97,12 @@ export const updateInstructorStatusService = async (userId, status) => {
   if (status === "approved") {
     const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
     const instructorLoginUrl = `${clientUrl.replace(/\/$/, "")}/instructor/login`;
-    const adminEmail = process.env.EMAIL_USER?.trim() || "learnify279@gmail.com";
+    const adminEmail = process.env.EMAIL_USER?.trim() || "stackversehub@gmail.com";
 
     try {
       await sendEmail(
         user.email,
-        "Your Learnify Instructor Account Has Been Approved",
+        "Your StackVerseHub Instructor Account Has Been Approved",
         instructorApprovalTemplate({
           instructorName: user.name,
           instructorLoginUrl,
@@ -142,10 +142,10 @@ export const getAdminStatsService = async () => {
 
   const monthlyData = await Payment.aggregate([
     { $match: { status: "paid" } },
-    { $group: { 
-        _id: { $month: "$createdAt" }, 
-        revenue: { $sum: "$amount" } 
-      } 
+    { $group: {
+        _id: { $month: "$createdAt" },
+        revenue: { $sum: "$amount" }
+      }
     },
     { $sort: { "_id": 1 } }
   ]);
@@ -199,7 +199,7 @@ export const deleteOfferService = async (id) => {
 // ✅ Earnings & Payments
 export const getEarningsService = async () => {
   const payments = await Payment.find({ status: "paid" }).populate("course", "title category");
-  
+
   const totalRevenue = payments.reduce((sum, p) => sum + p.amount, 0);
   const platformProfit = totalRevenue * 0.2;
   const instructorPayouts = totalRevenue * 0.8;
@@ -207,10 +207,10 @@ export const getEarningsService = async () => {
   // Monthly data for chart
   const monthlyData = await Payment.aggregate([
     { $match: { status: "paid" } },
-    { $group: { 
-        _id: { $month: "$createdAt" }, 
-        revenue: { $sum: "$amount" } 
-      } 
+    { $group: {
+        _id: { $month: "$createdAt" },
+        revenue: { $sum: "$amount" }
+      }
     },
     { $sort: { "_id": 1 } }
   ]);
@@ -281,12 +281,12 @@ export const getBlockedUsersService = async () => {
 export const blockUserService = async (userId, reason, adminId) => {
   const user = await User.findById(userId);
   if (!user) throw new Error("User not found");
-  
+
   user.isBlocked = true;
   user.blockedReason = reason;
   user.blockedAt = new Date();
   user.blockedBy = adminId;
-  
+
   await user.save();
   return user;
 };
@@ -294,12 +294,12 @@ export const blockUserService = async (userId, reason, adminId) => {
 export const unblockUserService = async (userId) => {
   const user = await User.findById(userId);
   if (!user) throw new Error("User not found");
-  
+
   user.isBlocked = false;
   user.blockedReason = "";
   user.blockedAt = undefined;
   user.blockedBy = undefined;
-  
+
   await user.save();
   return user;
 };
@@ -350,7 +350,7 @@ export const getReportsDataService = async (fromDate, toDate) => {
       const dateRange = {};
       if (fromDate) dateRange.$gte = new Date(fromDate);
       if (toDate) dateRange.$lte = new Date(toDate);
-      
+
       paymentMatch.createdAt = dateRange;
       userMatch.createdAt = dateRange;
       courseMatch.createdAt = dateRange;
@@ -363,26 +363,26 @@ export const getReportsDataService = async (fromDate, toDate) => {
 
     const monthlyRevenue = await Payment.aggregate([
       { $match: paymentMatch },
-      { $group: { 
-          _id: { 
-            month: { $month: "$createdAt" }, 
-            year: { $year: "$createdAt" } 
-          }, 
-          revenue: { $sum: "$amount" } 
-        } 
+      { $group: {
+          _id: {
+            month: { $month: "$createdAt" },
+            year: { $year: "$createdAt" }
+          },
+          revenue: { $sum: "$amount" }
+        }
       },
       { $sort: { "_id.year": -1, "_id.month": -1 } }
     ]);
 
     const userGrowth = await User.aggregate([
       { $match: userMatch },
-      { $group: { 
-          _id: { 
-            month: { $month: "$createdAt" }, 
-            year: { $year: "$createdAt" } 
-          }, 
-          count: { $sum: 1 } 
-        } 
+      { $group: {
+          _id: {
+            month: { $month: "$createdAt" },
+            year: { $year: "$createdAt" }
+          },
+          count: { $sum: 1 }
+        }
       },
       { $sort: { "_id.year": -1, "_id.month": -1 } }
     ]);

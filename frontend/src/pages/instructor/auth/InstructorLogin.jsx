@@ -82,7 +82,7 @@ function InstructorLogin() {
             <span>Instructor Portal</span>
           </div>
           <h2 className="text-4xl font-extrabold mb-6 leading-tight">
-            Share Your Knowledge on <span className="text-indigo-600">Learnify</span>
+            Share Your Knowledge on <span className="text-indigo-600">StackVerseHub</span>
           </h2>
           <p className="text-slate-600 text-lg mb-10">
             Empower learners worldwide. Manage your courses, track student progress, and grow your teaching brand.
@@ -103,7 +103,7 @@ function InstructorLogin() {
         <div className="w-full max-w-md">
           {/* Header for Mobile */}
           <div className="lg:hidden mb-12 flex items-center justify-center">
-            <img src="/logo.png" alt="Learnify" className="h-10 w-auto" />
+            <img src="/logo.png" alt="StackVerseHub" className="h-10 w-auto" />
           </div>
 
           <div className="mb-10">
@@ -129,7 +129,7 @@ function InstructorLogin() {
                 <input
                   type="email"
                   name="email"
-                  placeholder="instructor@learnify.com"
+                  placeholder="instructor@stackversehub.com"
                   value={formik.values.email}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
@@ -242,7 +242,7 @@ function InstructorLogin() {
 
           <div className="text-center mt-10">
             <p className="text-sm text-slate-500">
-              New to Learnify?{" "}
+              New to StackVerseHub?{" "}
               <Link to="/instructor/register" className="text-indigo-600 font-bold hover:underline ml-1">
                 Apply to teach
               </Link>

@@ -1,24 +1,55 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  PlayCircle, 
-  Calendar, 
-  Clock, 
-  Users, 
-  CheckCircle2, 
-  XCircle, 
+import {
+  PlayCircle,
+  Calendar,
+  Clock,
+  CheckCircle2,
+  XCircle,
   Video,
-  ArrowRight,
   Info,
   ChevronRight,
   Loader2,
-  AlertCircle,
-  ExternalLink
+  AlertCircle
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { getMyLiveSessions } from '../../services/liveService';
 import { useSocket } from '../../context/SocketContext';
 
+const toSessionArray = (data) => {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.sessions)) return data.sessions;
+  if (Array.isArray(data?.data)) return data.data;
+  return [];
+};
+
+const getSessionId = (session) => session?._id || session?.id;
+const getSessionDate = (session) => session?.scheduledAt || session?.startTime;
+const isSessionLive = (session) => session?.status === 'live' || session?.isLive === true;
+const isSessionJoinable = (session) => isSessionLive(session) || session?.status === 'starting';
+
+const formatSessionDate = (value) => {
+  const date = value ? new Date(value) : null;
+  if (!date || Number.isNaN(date.getTime())) return 'TBA';
+
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+  });
+};
+
+const formatSessionTime = (value) => {
+  const date = value ? new Date(value) : null;
+  if (!date || Number.isNaN(date.getTime())) return 'Time TBA';
+
+  return date.toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
 const LiveClasses = () => {
   const { socket } = useSocket();
+  const navigate = useNavigate();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -31,14 +62,22 @@ const LiveClasses = () => {
     if (!socket) return;
 
     const handleSessionStarted = (data) => {
-      setSessions((prev) => 
-        prev.map((s) => s._id === data.sessionId ? { ...s, isLive: true, meetingLink: data.meetingLink } : s)
+      setSessions((prev) =>
+        prev.map((s) =>
+          getSessionId(s) === data.sessionId
+            ? { ...s, status: 'live', isLive: true }
+            : s
+        )
       );
     };
 
     const handleSessionEnded = (data) => {
-      setSessions((prev) => 
-        prev.map((s) => s._id === data.sessionId ? { ...s, isLive: false } : s)
+      setSessions((prev) =>
+        prev.map((s) =>
+          getSessionId(s) === data.sessionId
+            ? { ...s, status: 'ended', isLive: false }
+            : s
+        )
       );
     };
 
@@ -47,14 +86,18 @@ const LiveClasses = () => {
     };
 
     const handleClassUpdated = (updatedSession) => {
-      setSessions((prev) => 
-        prev.map((s) => s._id === updatedSession._id ? updatedSession : s)
+      setSessions((prev) =>
+        prev.map((s) =>
+          getSessionId(s) === getSessionId(updatedSession)
+            ? { ...s, ...updatedSession }
+            : s
+        )
       );
     };
 
     const handleClassDeleted = (data) => {
-      setSessions((prev) => 
-        prev.filter((s) => s._id !== data.sessionId)
+      setSessions((prev) =>
+        prev.filter((s) => getSessionId(s) !== data.sessionId)
       );
     };
 
@@ -77,7 +120,7 @@ const LiveClasses = () => {
     try {
       setLoading(true);
       const data = await getMyLiveSessions();
-      setSessions(data);
+      setSessions(toSessionArray(data));
       setError(null);
     } catch (err) {
       console.error("Error fetching live sessions:", err);
@@ -113,7 +156,7 @@ const LiveClasses = () => {
           <AlertCircle className="w-12 h-12 text-red-500" />
           <h3 className="text-xl font-bold text-slate-900">Oops! Something went wrong</h3>
           <p className="text-slate-500 max-w-md">{error}</p>
-          <button 
+          <button
             onClick={fetchLiveSessions}
             className="mt-2 px-6 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all"
           >
@@ -153,7 +196,7 @@ const LiveClasses = () => {
             <Video size={20} className="text-blue-600" />
             Upcoming Live Classes
           </h3>
-          
+
           <div className="space-y-4">
             {sessions.length === 0 ? (
               <div className="bg-slate-50 border border-dashed border-slate-200 rounded-3xl p-12 text-center flex flex-col items-center gap-4">
@@ -161,65 +204,70 @@ const LiveClasses = () => {
                 <p className="text-slate-500 font-medium">No live classes scheduled for your enrolled courses yet.</p>
               </div>
             ) : (
-              sessions.map((item) => (
-                <div key={item._id} className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:border-blue-300 transition-all group">
-                  <div className="p-6 md:p-8 flex flex-col md:flex-row items-center gap-6">
-                    <div className={`w-20 h-20 rounded-2xl flex flex-col items-center justify-center border-2 ${
-                      item.isLive ? 'bg-red-50 border-red-100 text-red-600' : 'bg-slate-50 border-slate-100 text-slate-400'
-                    }`}>
-                      <Calendar size={24} />
-                      <span className="text-[10px] font-bold uppercase tracking-widest mt-1">
-                        {new Date(item.startTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      </span>
-                    </div>
-                    
-                    <div className="flex-1 space-y-3 text-center md:text-left">
-                      <div className="flex flex-wrap justify-center md:justify-start items-center gap-3">
-                        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
-                          item.isLive ? 'bg-red-600 text-white animate-pulse' : 'bg-blue-600 text-white'
-                        }`}>
-                          {item.isLive ? 'Live Now' : 'Upcoming'}
-                        </span>
-                        <span className="text-xs font-bold text-slate-900 uppercase tracking-widest bg-slate-100 px-2 py-1 rounded-lg">
-                          {item.course?.title}
-                        </span>
-                      </div>
-                      <h4 className="text-xl font-bold text-slate-900 line-clamp-1">{item.title}</h4>
-                      <div className="flex flex-wrap justify-center md:justify-start items-center gap-4 text-sm font-medium text-slate-500">
-                        <span className="flex items-center gap-1.5"><Clock size={16} /> {new Date(item.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                        <span className="flex items-center gap-1.5 font-bold text-blue-600">Instructor: {item.instructor?.name}</span>
-                        {item.isLive && item.meetingLink ? (
-                          <a href={item.meetingLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-blue-600 hover:underline font-bold">
-                            <ExternalLink size={16} /> Link: {item.meetingLink}
-                          </a>
-                        ) : (
-                          <span className="text-slate-400 italic text-xs">Link will be available when session starts</span>
-                        )}
-                      </div>
-                    </div>
+              sessions.map((item) => {
+                const sessionDate = getSessionDate(item);
+                const live = isSessionLive(item);
+                const joinable = isSessionJoinable(item);
 
-                    <button 
-                      onClick={() => item.isLive && window.open(item.meetingLink, '_blank')}
-                      className={`px-8 py-4 rounded-xl font-bold text-sm transition-all shadow-lg flex items-center gap-2 ${
-                      item.isLive 
-                      ? 'bg-red-600 text-white hover:bg-red-700 shadow-red-100 active:scale-95' 
-                      : 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none'
-                    }`}>
-                      {item.isLive ? (
-                        <>
-                          <PlayCircle size={20} />
-                          Join Now
-                        </>
-                      ) : (
-                        'Locked'
-                      )}
-                    </button>
+                return (
+                  <div key={getSessionId(item)} className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:border-blue-300 transition-all group">
+                    <div className="p-6 md:p-8 flex flex-col md:flex-row items-center gap-6">
+                      <div className={`w-20 h-20 rounded-2xl flex flex-col items-center justify-center border-2 ${
+                        live ? 'bg-red-50 border-red-100 text-red-600' : 'bg-slate-50 border-slate-100 text-slate-400'
+                      }`}>
+                        <Calendar size={24} />
+                        <span className="text-[10px] font-bold uppercase tracking-widest mt-1">
+                          {formatSessionDate(sessionDate)}
+                        </span>
+                      </div>
+
+                      <div className="flex-1 space-y-3 text-center md:text-left">
+                        <div className="flex flex-wrap justify-center md:justify-start items-center gap-3">
+                          <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
+                            live ? 'bg-red-600 text-white animate-pulse' : 'bg-blue-600 text-white'
+                          }`}>
+                            {live ? 'Live Now' : item.status === 'starting' ? 'Starting' : 'Upcoming'}
+                          </span>
+                          <span className="text-xs font-bold text-slate-900 uppercase tracking-widest bg-slate-100 px-2 py-1 rounded-lg">
+                            {item.course?.title || 'Course'}
+                          </span>
+                        </div>
+                        <h4 className="text-xl font-bold text-slate-900 line-clamp-1">{item.title}</h4>
+                        <div className="flex flex-wrap justify-center md:justify-start items-center gap-4 text-sm font-medium text-slate-500">
+                          <span className="flex items-center gap-1.5"><Clock size={16} /> {formatSessionTime(sessionDate)}</span>
+                          <span className="flex items-center gap-1.5 font-bold text-blue-600">Instructor: {item.instructor?.name || 'Instructor'}</span>
+                          {joinable ? (
+                            <span className="text-red-600 font-bold text-xs">Live room is open</span>
+                          ) : (
+                            <span className="text-slate-400 italic text-xs">Link will be available when session starts</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => joinable && navigate(`/student/live-chat/${getSessionId(item)}`)}
+                        disabled={!joinable}
+                        className={`px-8 py-4 rounded-xl font-bold text-sm transition-all shadow-lg flex items-center gap-2 ${
+                        joinable
+                        ? 'bg-red-600 text-white hover:bg-red-700 shadow-red-100 active:scale-95'
+                        : 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none'
+                      }`}>
+                        {joinable ? (
+                          <>
+                            <PlayCircle size={20} />
+                            Join Now
+                          </>
+                        ) : (
+                          'Locked'
+                        )}
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
-          
+
           <div className="p-6 bg-blue-50 rounded-2xl border border-dashed border-blue-200 flex items-start gap-4">
             <Info size={20} className="text-blue-600 flex-shrink-0" />
             <div className="space-y-1">
@@ -237,7 +285,7 @@ const LiveClasses = () => {
             <Calendar size={20} className="text-blue-600" />
             Attendance History
           </h3>
-          
+
           <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="divide-y divide-slate-100">
               {attendanceHistory.length === 0 ? (

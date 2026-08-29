@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { 
-  ShieldCheck, 
-  AlertCircle, 
-  Loader2, 
-  Search, 
-  Calendar, 
-  User, 
-  BookOpen, 
+import {
+  ShieldCheck,
+  AlertCircle,
+  Loader2,
+  Search,
+  Calendar,
+  User,
+  BookOpen,
   Award,
   ArrowLeft,
   CheckCircle2,
@@ -28,18 +28,18 @@ const VerifyCertificate = () => {
 
   const handleVerify = useCallback(async (codeToVerify) => {
     if (!codeToVerify || !codeToVerify.trim()) return;
-    
+
     setLoading(true);
     setError(null);
     setSearched(true);
-    
+
     try {
       const data = await verifyCertificate(codeToVerify.trim());
       setCertData(data);
     } catch (err) {
       console.error("Verification error:", err);
       setError(
-        err.response?.data?.message || 
+        err.response?.data?.message ||
         "Invalid certificate code. The credential could not be found or verified in our database."
       );
       setCertData(null);
@@ -84,19 +84,19 @@ const VerifyCertificate = () => {
               <BookOpen className="text-white w-5 h-5" />
             </div>
             <span className="text-2xl font-black tracking-tighter text-slate-900">
-              Learnify
+              StackVerseHub
             </span>
           </div>
-          
+
           <div className="flex items-center gap-6">
-            <Link 
-              to="/login" 
+            <Link
+              to="/login"
               className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 hover:text-blue-600 transition-colors"
             >
               Sign In
             </Link>
-            <Link 
-              to="/" 
+            <Link
+              to="/"
               className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-xs font-bold uppercase tracking-[0.2em] shadow-lg shadow-blue-600/20 transition-all hover:-translate-y-0.5 active:translate-y-0"
             >
               Explore Courses
@@ -112,14 +112,14 @@ const VerifyCertificate = () => {
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-amber-500/10 rounded-full filter blur-[120px] translate-x-1/2 translate-y-1/2"></div>
 
         <div className="w-full max-w-4xl z-10 my-8">
-          
+
           {/* Default Search State */}
           {!searched && !loading && (
             <div className="bg-white rounded-[2.5rem] border border-slate-200/80 shadow-2xl p-10 md:p-16 max-w-2xl mx-auto text-center space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="mx-auto w-20 h-20 bg-blue-50 border border-blue-100 rounded-3xl flex items-center justify-center text-blue-600 shadow-inner">
                 <ShieldCheck size={40} className="stroke-[1.5]" />
               </div>
-              
+
               <div className="space-y-3">
                 <h1 className="text-3xl font-black text-slate-900 tracking-tight">Verify Academy Credentials</h1>
                 <p className="text-slate-500 text-sm max-w-md mx-auto leading-relaxed">
@@ -150,7 +150,7 @@ const VerifyCertificate = () => {
               </form>
 
               <div className="pt-6 border-t border-slate-100 text-slate-400 text-xs font-semibold uppercase tracking-widest flex items-center justify-center gap-1.5">
-                <Award size={14} /> Backed by secure Learnify Verification Registry
+                <Award size={14} /> Backed by secure StackVerseHub Verification Registry
               </div>
             </div>
           )}
@@ -161,7 +161,7 @@ const VerifyCertificate = () => {
               <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
               <div className="space-y-2">
                 <h3 className="text-xl font-bold text-slate-900">Retrieving Record</h3>
-                <p className="text-slate-400 text-sm">Searching the Learnify database for verification ID: <span className="font-bold text-slate-600">{code}</span></p>
+                <p className="text-slate-400 text-sm">Searching the StackVerseHub database for verification ID: <span className="font-bold text-slate-600">{code}</span></p>
               </div>
             </div>
           )}
@@ -205,7 +205,7 @@ const VerifyCertificate = () => {
             <div className="space-y-8 animate-in fade-in duration-500">
               {/* Status Header Block */}
               <div className={`p-8 rounded-[2rem] border shadow-md flex flex-col md:flex-row items-center justify-between gap-6 ${
-                certData.valid 
+                certData.valid
                   ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
                   : certData.status === 'rejected'
                   ? 'bg-red-50 border-red-200 text-red-900'
@@ -213,7 +213,7 @@ const VerifyCertificate = () => {
               }`}>
                 <div className="flex items-center gap-5 text-center md:text-left flex-col md:flex-row">
                   <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg ${
-                    certData.valid 
+                    certData.valid
                       ? 'bg-emerald-600 text-white shadow-emerald-600/10'
                       : certData.status === 'rejected'
                       ? 'bg-red-600 text-white shadow-red-600/10'
@@ -234,8 +234,8 @@ const VerifyCertificate = () => {
                       </span>
                     </div>
                     <h2 className="text-xl font-black tracking-tight text-slate-900">
-                      {certData.valid 
-                        ? 'This certificate is fully valid and verified.' 
+                      {certData.valid
+                        ? 'This certificate is fully valid and verified.'
                         : certData.status === 'rejected'
                         ? 'This certificate request was rejected.'
                         : 'This certificate request is pending instructor approval.'}
@@ -259,19 +259,19 @@ const VerifyCertificate = () => {
                 {/* Visual Certificate (takes 2 columns) */}
                 <div className="md:col-span-2 space-y-4">
                   <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Certificate Preview</h3>
-                  
+
                   <div className="w-full aspect-[1.414/1] border-8 border-slate-900 p-5 md:p-8 relative flex flex-col justify-between bg-[#fbfcfd] text-center select-none overflow-hidden rounded-[1.5rem] shadow-xl border-double">
                     {/* Decorative corner borders */}
                     <div className="absolute top-4 left-4 w-12 h-12 border-t-2 border-l-2 border-amber-600"></div>
                     <div className="absolute top-4 right-4 w-12 h-12 border-t-2 border-r-2 border-amber-600"></div>
                     <div className="absolute bottom-4 left-4 w-12 h-12 border-b-2 border-l-2 border-amber-600"></div>
                     <div className="absolute bottom-4 right-4 w-12 h-12 border-b-2 border-r-2 border-amber-600"></div>
-                    
+
                     <div className="absolute inset-4 border border-amber-700/30"></div>
 
                     {/* Brand Header */}
                     <div className="flex flex-col items-center mt-1">
-                      <img src="/logo.png" alt="Learnify" className="h-6 md:h-8 w-auto object-contain" />
+                      <img src="/logo.png" alt="StackVerseHub" className="h-6 md:h-8 w-auto object-contain" />
                       <h2 className="text-md md:text-2xl font-black text-slate-900 tracking-tight mt-1">CERTIFICATE OF COMPLETION</h2>
                       <p className="text-slate-400 text-[10px] md:text-xs italic font-serif mt-0.5">This is proudly presented to</p>
                     </div>
@@ -334,7 +334,7 @@ const VerifyCertificate = () => {
                 {/* Verification Metadata details */}
                 <div className="space-y-4">
                   <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Verification Details</h3>
-                  
+
                   <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-6">
                     <div className="space-y-4">
                       <div>
@@ -399,7 +399,7 @@ const VerifyCertificate = () => {
       {/* Footer */}
       <footer className="py-8 bg-white border-t border-slate-200/80">
         <div className="container mx-auto px-6 text-center text-slate-400 text-[10px] font-bold uppercase tracking-widest">
-          © 2026 Learnify Ecosystem. All Rights Reserved.
+          © 2026 StackVerseHub Ecosystem. All Rights Reserved.
         </div>
       </footer>
     </div>

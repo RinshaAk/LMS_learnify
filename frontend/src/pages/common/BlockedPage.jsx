@@ -24,11 +24,11 @@ const BlockedPage = () => {
             <ShieldAlert size={64} className="text-white" />
           </div>
         </div>
-        
+
         <div className="p-10 text-center space-y-8">
           <div className="space-y-2">
             <h2 className="text-3xl font-black text-slate-900 tracking-tight">Account Restricted</h2>
-            <p className="text-slate-500 font-medium">Your access to Learnify has been suspended.</p>
+            <p className="text-slate-500 font-medium">Your access to StackVerseHub has been suspended.</p>
           </div>
 
           <div className="bg-red-50 p-6 rounded-3xl border border-red-100 text-left space-y-3">
@@ -50,14 +50,14 @@ const BlockedPage = () => {
           </div>
 
           <div className="pt-4 flex flex-col gap-3">
-            <button 
+            <button
               onClick={handleLogout}
               className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-slate-800 transition-all active:scale-95 shadow-xl shadow-slate-100"
             >
               <LogOut size={20} />
               Sign Out
             </button>
-            <button 
+            <button
               onClick={() => navigate('/')}
               className="w-full py-4 text-slate-500 font-bold text-sm hover:text-slate-900 transition-colors"
             >
@@ -65,9 +65,9 @@ const BlockedPage = () => {
             </button>
           </div>
         </div>
-        
+
         <div className="bg-slate-50 p-4 border-t border-slate-100 text-center">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Learnify Security System</p>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">StackVerseHub Security System</p>
         </div>
       </div>
     </div>

@@ -105,7 +105,7 @@ function Login() {
             <span>Join 10k+ Learners</span>
           </div>
           <h2 className="text-4xl font-extrabold mb-6 leading-tight">
-            Master New Skills with <span className="text-blue-600">Learnify</span>
+            Master New Skills with <span className="text-blue-600">StackVerseHub</span>
           </h2>
           <p className="text-slate-600 text-lg mb-10">
             Access world-class courses, expert instructors, and a community of passionate learners. Your journey to excellence starts here.
@@ -130,7 +130,7 @@ function Login() {
         <div className="w-full max-w-md">
           {/* Header for Mobile */}
           <div className="lg:hidden mb-12 flex items-center justify-center">
-            <img src="/logo.png" alt="Learnify" className="h-10 w-auto" />
+            <img src="/logo.png" alt="StackVerseHub" className="h-10 w-auto" />
           </div>
 
           <div className="mb-10">

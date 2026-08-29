@@ -20,7 +20,9 @@ export const loginAPI = async (userData) => {
     throw new Error("A valid login portal is required");
   }
 
-  const { portalRole, ...credentials } = userData;
+  const credentials = { ...userData };
+  delete credentials.portalRole;
+
   const response = await axiosInstance.post(endpoint, credentials);
   return response.data;
 };

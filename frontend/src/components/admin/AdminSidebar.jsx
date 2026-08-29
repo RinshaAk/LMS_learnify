@@ -1,15 +1,15 @@
 import React from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { 
-  LayoutDashboard, 
-  Users, 
-  GraduationCap, 
-  CheckCircle, 
-  Layers, 
-  CreditCard, 
-  BarChart3, 
-  UserCircle, 
+import {
+  LayoutDashboard,
+  Users,
+  GraduationCap,
+  CheckCircle,
+  Layers,
+  CreditCard,
+  BarChart3,
+  UserCircle,
   LogOut,
   User as UserIcon
 } from 'lucide-react';
@@ -37,7 +37,7 @@ const AdminSidebar = ({ isOpen, toggleSidebar }) => {
   ];
 
   return (
-    <aside 
+    <aside
       className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200/80 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
         isOpen ? 'translate-x-0' : '-translate-x-full'
       }`}
@@ -46,7 +46,7 @@ const AdminSidebar = ({ isOpen, toggleSidebar }) => {
         {/* Logo */}
         <div className="h-16 flex items-center px-6 border-b border-slate-100 shrink-0">
           <Link to="/admin/dashboard" className="flex items-center">
-            <img src="/logo.png" alt="Learnify" className="h-7 w-auto" />
+            <img src="/logo.png" alt="StackVerseHub" className="h-7 w-auto" />
           </Link>
         </div>
 
@@ -84,7 +84,7 @@ const AdminSidebar = ({ isOpen, toggleSidebar }) => {
               </div>
             </div>
           </div>
-          <button 
+          <button
             onClick={handleLogout}
             className="mt-2 flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-sm font-bold text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
           >

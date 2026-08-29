@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  BookOpen, 
-  User, 
+import {
+  BookOpen,
+  User,
   Users,
-  Award, 
-  PlayCircle, 
-  Star, 
-  ChevronRight, 
-  CheckCircle2, 
+  Award,
+  PlayCircle,
+  Star,
+  ChevronRight,
+  CheckCircle2,
   ArrowRight,
   Menu,
   X,
@@ -185,23 +185,23 @@ const LandingPage = () => {
     <div className="min-h-screen bg-slate-50/30 font-sans text-slate-900 selection:bg-primary-100 selection:text-primary-900">
       {/* Navigation */}
       <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${
-        scrolled 
-          ? 'bg-white/95 backdrop-blur-md shadow-sm py-3 border-b border-slate-100' 
+        scrolled
+          ? 'bg-white/95 backdrop-blur-md shadow-sm py-3 border-b border-slate-100'
           : 'bg-transparent py-6'
       }`}>
         <div className="container mx-auto px-6 max-w-7xl flex justify-between items-center">
           <div className="flex items-center cursor-pointer" onClick={() => navigate('/')}>
-            <img 
-              src="/logo.png" 
-              alt="Learnify" 
-              className="h-8 w-auto" 
+            <img
+              src="/logo.png"
+              alt="StackVerseHub"
+              className="h-8 w-auto"
             />
           </div>
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-8">
             {['Courses', 'About', 'Teach'].map((item) => (
-              <a 
+              <a
                 key={item}
                 href={item === 'Teach' ? '/instructor/login' : `#${item.toLowerCase()}`}
                 onClick={(e) => {
@@ -221,13 +221,13 @@ const LandingPage = () => {
           <div className="hidden md:flex items-center gap-4">
             {!currentUser ? (
               <>
-                <button 
+                <button
                   onClick={() => { dispatch(logout()); navigate('/login'); }}
                   className="text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors px-4 py-2"
                 >
                   Login
                 </button>
-                <button 
+                <button
                   onClick={() => navigate('/register')}
                   className="btn-primary py-2 px-5 text-xs rounded-xl"
                 >
@@ -235,7 +235,7 @@ const LandingPage = () => {
                 </button>
               </>
            ) : (
-              <button 
+              <button
                 onClick={() => { dispatch(logout()); navigate('/login'); }}
                 className="btn-primary py-2 px-5 text-xs rounded-xl"
               >
@@ -245,7 +245,7 @@ const LandingPage = () => {
           </div>
 
           {/* Mobile Toggle */}
-          <button 
+          <button
             className="md:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-xl"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
@@ -264,7 +264,7 @@ const LandingPage = () => {
             >
               <div className="flex flex-col p-6 space-y-4">
                 {['Courses', 'About', 'Teach'].map((item) => (
-                  <a 
+                  <a
                     key={item}
                     href={item === 'Teach' ? '/instructor/login' : `#${item.toLowerCase()}`}
                     onClick={(e) => {
@@ -275,7 +275,7 @@ const LandingPage = () => {
                       } else {
                         setIsMenuOpen(false);
                       }
-                    }} 
+                    }}
                     className="text-sm font-semibold text-slate-700 hover:text-primary-600 transition-colors"
                   >
                     {item}
@@ -414,7 +414,7 @@ const LandingPage = () => {
             </div>
             {/* Browse Catalog button removed per request */}
           </div>
-          
+
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {loadingCourses ? (
               [1, 2, 3].map(i => (
@@ -424,10 +424,10 @@ const LandingPage = () => {
               <div key={course._id} className="card bg-white border border-slate-100 flex flex-col justify-between">
                 <div>
                   <div className="relative aspect-video overflow-hidden bg-slate-50">
-                    <img 
-                      src={course.thumbnail || "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=600&q=80"} 
-                      alt={course.title} 
-                      className="w-full h-full object-cover transition-transform duration-500 hover:scale-102" 
+                    <img
+                      src={course.thumbnail || "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=600&q=80"}
+                      alt={course.title}
+                      className="w-full h-full object-cover transition-transform duration-500 hover:scale-102"
                     />
                     <div className="absolute top-3 left-3 bg-white/95 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-slate-150 text-slate-800 shadow-sm">
                       {course.category}
@@ -451,15 +451,15 @@ const LandingPage = () => {
                     </h4>
                   </div>
                 </div>
-                
+
                 <div className="p-6 pt-0">
                   <div className="flex items-center justify-between pt-4 border-t border-slate-50">
                     <div>
                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Program Fee</p>
                       <p className="text-lg font-black text-slate-900">₹{course.price?.toLocaleString()}</p>
                     </div>
-                    <button 
-                      onClick={() => handleEnrollClick(course._id)} 
+                    <button
+                      onClick={() => handleEnrollClick(course._id)}
                       className="btn-primary py-2 px-5 text-xs rounded-xl"
                     >
                       Enroll
@@ -542,23 +542,23 @@ const LandingPage = () => {
       <section className="py-20 bg-slate-950 text-white relative overflow-hidden">
         {/* Decorative elements */}
         <div className="absolute top-0 right-0 w-80 h-80 bg-primary-600/10 rounded-full filter blur-[80px] -mr-40 -mt-40"></div>
-        
+
         <div className="container mx-auto px-6 text-center space-y-8 relative z-10 max-w-3xl">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight leading-tight">
             Ready to Advance Your <span className="text-primary-400">Professional Journey?</span>
           </h2>
           <p className="text-slate-400 text-sm sm:text-base leading-relaxed max-w-xl mx-auto font-medium">
-            Join thousands of professionals already mastering new industry standards and upgrading their credentials on Learnify.
+            Join thousands of professionals already mastering new industry standards and upgrading their credentials on StackVerseHub.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
-            <button 
+            <button
               onClick={() => { dispatch(logout()); navigate('/login'); }}
               className="btn-primary px-8 py-3.5 text-xs font-black uppercase tracking-wider rounded-xl shadow-lg shadow-primary-600/10 w-full sm:w-auto"
             >
               Start Learning Now
             </button>
-            <button 
-              onClick={() => { dispatch(logout()); navigate('/instructor/login'); }} 
+            <button
+              onClick={() => { dispatch(logout()); navigate('/instructor/login'); }}
               className="btn-secondary px-8 py-3.5 text-xs font-black uppercase tracking-wider rounded-xl bg-transparent text-white border-slate-800 hover:bg-slate-900 w-full sm:w-auto"
             >
               Become an Instructor
@@ -573,13 +573,13 @@ const LandingPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-12 mb-16">
             <div className="md:col-span-2 space-y-6">
               <div className="flex items-center">
-                <img src="/logo.png" alt="Learnify" className="h-8 w-auto" />
+                <img src="/logo.png" alt="StackVerseHub" className="h-8 w-auto" />
               </div>
               <p className="text-slate-500 max-w-xs text-xs leading-relaxed font-medium">
                 The leading platform for professional skill development, mentor-led courses, and verified industry accreditation.
               </p>
             </div>
-            
+
             {['Catalog', 'Company', 'Legal'].map((title, idx) => (
               <div key={idx}>
                 <h6 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">{title}</h6>
@@ -591,9 +591,9 @@ const LandingPage = () => {
               </div>
             ))}
           </div>
-          
+
           <div className="pt-8 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-6">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">© 2026 Learnify Ecosystem. Built for Professionals.</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">© 2026 StackVerseHub Ecosystem. Built for Professionals.</p>
             <div className="flex gap-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">
               <a href="#" className="hover:text-primary-600 transition-colors">Privacy Policy</a>
               <a href="#" className="hover:text-primary-600 transition-colors">Terms of Service</a>

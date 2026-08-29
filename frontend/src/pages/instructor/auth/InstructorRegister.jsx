@@ -7,6 +7,35 @@ import { clearState } from "../../../features/auth/authSlice";
 import { useDispatch, useSelector } from "react-redux";
 import { User, Mail, Lock, Eye, EyeOff, ShieldCheck, ArrowRight, CheckCircle2, Briefcase } from "lucide-react";
 import { toast } from 'react-hot-toast';
+
+const getRegistrationErrorMessage = (err) => {
+  const message = typeof err === "string" ? err : err?.message || "";
+  const normalized = message.toLowerCase();
+
+  if (
+    normalized.includes("gmail app password") ||
+    normalized.includes("email authentication failed") ||
+    normalized.includes("email service") ||
+    normalized.includes("unable to send verification email")
+  ) {
+    return "We couldn't send the verification code because StackVerseHub's email service is not working right now. Your instructor account was not created yet. Please try again later or contact support.";
+  }
+
+  if (normalized.includes("user already registered")) {
+    return "This email is already registered. Please sign in instead, or use Forgot Password if you cannot access your account.";
+  }
+
+  if (normalized.includes("verify otp")) {
+    return "Please verify your email with the 6-digit code before completing registration.";
+  }
+
+  if (normalized.includes("invalid otp")) {
+    return "The verification code does not match. Please check the 6-digit code and try again.";
+  }
+
+  return message || "Registration failed. Please try again.";
+};
+
 function InstructorRegister() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -75,10 +104,10 @@ function InstructorRegister() {
           toast.success("Instructor Registration successful! Please complete your verification.");
           navigate("/instructor/login");
         } else {
-          toast.error(result.payload || "Registration failed. Please try again.");
+          toast.error(getRegistrationErrorMessage(result.payload));
         }
       } catch (err) {
-        setError(err || "Registration failed. Please try again.");
+        setError(getRegistrationErrorMessage(err));
       }
     },
   });
@@ -113,7 +142,7 @@ function InstructorRegister() {
       setTimer(30); // start 30 sec timer
       setError("");
     } catch (err) {
-      setError(err || "Failed to send verification code. Please check your email.");
+      setError(getRegistrationErrorMessage(err));
     }
   };
 
@@ -126,7 +155,7 @@ function InstructorRegister() {
       setTimer(30);
       setError("");
     } catch (err) {
-      setError(typeof err === "string" ? err : err?.message || "Failed to resend code.");
+      setError(getRegistrationErrorMessage(err));
     }
   };
 
@@ -136,7 +165,7 @@ function InstructorRegister() {
     if (!otpValue || otpValue.length !== 6) {
         return setError("Please enter the 6-digit verification code.");
     }
-    
+
     if (loading) return; // Prevent multiple calls
 
     try {
@@ -187,7 +216,7 @@ function InstructorRegister() {
         <div className="w-full max-w-md">
           {/* Header for Mobile */}
           <div className="lg:hidden mb-8 flex items-center justify-center">
-            <img src="/logo.png" alt="Learnify" className="h-10 w-auto" />
+            <img src="/logo.png" alt="StackVerseHub" className="h-10 w-auto" />
           </div>
 
           <div className="mb-8">
@@ -252,7 +281,7 @@ function InstructorRegister() {
                 <input
                   type="email"
                   name="email"
-                  placeholder="instructor@learnify.com"
+                  placeholder="instructor@stackversehub.com"
                   value={formik.values.email}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}

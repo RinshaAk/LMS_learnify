@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   Clock,
   Copy,
+  ExternalLink,
   Eye,
   EyeOff,
   Loader2,
@@ -67,6 +68,32 @@ const STATUS_META = {
 };
 
 const POLLABLE_STATUSES = new Set(['starting', 'live']);
+const OBS_SETUP_STEPS = [
+  {
+    title: 'Open OBS Studio',
+    detail: 'Use OBS Studio on your laptop or desktop.',
+  },
+  {
+    title: 'Open Settings -> Stream',
+    detail: 'Set Service to Custom.',
+  },
+  {
+    title: 'Paste the Server URL',
+    detail: 'Copy RTMPS Server URL here and paste it into the Server field.',
+  },
+  {
+    title: 'Paste the Stream Key',
+    detail: 'Copy One-time Stream Key here and paste it into the Stream Key field.',
+  },
+  {
+    title: 'Apply settings',
+    detail: 'Click Apply, then OK in OBS.',
+  },
+  {
+    title: 'Start Streaming',
+    detail: 'Click Start Streaming in OBS. StackVerseHub will change this class to LIVE automatically.',
+  },
+];
 
 const getSessionId = (session) => session?._id || session?.id;
 const getSessionDate = (session) => session?.scheduledAt || session?.startTime;
@@ -831,7 +858,22 @@ const InstructorLiveClasses = () => {
             <div className="grid gap-6 p-6 md:grid-cols-[1.2fr_0.8fr] md:p-8">
               <div className="space-y-5">
                 <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
-                  Anyone with this stream key can broadcast to this class. The key is displayed only once, and it will be cleared when this window closes.
+                  Anyone with this stream key can broadcast to this class. Copy both values into OBS before closing this window; the stream key cannot be shown again.
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm font-semibold text-slate-700">
+                  <p>
+                    OBS Studio must be installed on the instructor computer before streaming.
+                  </p>
+                  <a
+                    href="https://obsproject.com/download"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-3 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-xs font-bold text-white transition-all hover:bg-slate-800"
+                  >
+                    <ExternalLink size={16} />
+                    Download OBS Studio
+                  </a>
                 </div>
 
                 <div className="space-y-2">
@@ -854,6 +896,9 @@ const InstructorLiveClasses = () => {
                       {copiedField === 'serverUrl' ? 'Copied' : 'Copy Server URL'}
                     </button>
                   </div>
+                  <p className="px-1 text-xs font-semibold text-slate-500">
+                    In OBS, paste this into Settings {'->'} Stream {'->'} Server.
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -887,6 +932,13 @@ const InstructorLiveClasses = () => {
                       </button>
                     </div>
                   </div>
+                  <p className="px-1 text-xs font-semibold text-slate-500">
+                    In OBS, paste this into Settings {'->'} Stream {'->'} Stream Key.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm font-semibold text-emerald-900">
+                  After OBS starts streaming, keep this page open. The class status will move from Waiting for OBS to LIVE when Amazon IVS detects the broadcast.
                 </div>
               </div>
 
@@ -894,20 +946,16 @@ const InstructorLiveClasses = () => {
                 <h4 className="mb-4 text-sm font-black uppercase tracking-widest text-slate-900">
                   OBS Steps
                 </h4>
-                <ol className="space-y-3 text-sm font-semibold text-slate-600">
-                  {[
-                    'Open OBS',
-                    'Go to Settings -> Stream',
-                    'Choose Custom',
-                    'Paste Server URL',
-                    'Paste Stream Key',
-                    'Click Start Streaming',
-                  ].map((step, index) => (
-                    <li key={step} className="flex gap-3">
+                <ol className="space-y-4 text-sm font-semibold text-slate-600">
+                  {OBS_SETUP_STEPS.map((step, index) => (
+                    <li key={step.title} className="flex gap-3">
                       <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary-600 text-xs font-black text-white">
                         {index + 1}
                       </span>
-                      <span>{step}</span>
+                      <span className="space-y-1">
+                        <span className="block font-black text-slate-800">{step.title}</span>
+                        <span className="block text-xs leading-relaxed text-slate-500">{step.detail}</span>
+                      </span>
                     </li>
                   ))}
                 </ol>

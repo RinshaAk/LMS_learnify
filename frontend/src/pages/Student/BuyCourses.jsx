@@ -2,12 +2,12 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { toast } from 'react-hot-toast';
 import { fetchAllCourses, enrollInCourse, fetchEnrolledCourses } from '../../features/courses/courseThunk';
-import { 
-  Star, 
-  Users, 
-  Clock, 
-  BookOpen, 
-  ShieldCheck, 
+import {
+  Star,
+  Users,
+  Clock,
+  BookOpen,
+  ShieldCheck,
   ShoppingBag,
   X,
   CreditCard,
@@ -33,7 +33,7 @@ const BuyCourses = () => {
   const [showFailureModal, setShowFailureModal] = useState(false);
   const [failureReason, setFailureReason] = useState("");
   const [sortMode, setSortMode] = useState('all'); // 'all' | 'popular' | 'new'
-  
+
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("All");
 
@@ -88,7 +88,7 @@ const BuyCourses = () => {
 
       // 1. Create order on backend
       const orderData = await paymentService.createOrder(selectedCourse._id);
-      
+
       toast.dismiss(loadingToast);
       const { order, course } = orderData;
 
@@ -97,9 +97,9 @@ const BuyCourses = () => {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID,
         amount: order.amount,
         currency: order.currency,
-        name: "Learnify",
+        name: "StackVerseHub",
         description: `Enrolling in ${course.title}`,
-        image: "https://learnify.com/logo.png",
+        image: "https://stackversehub.com/logo.png",
         order_id: order.id,
         handler: async (response) => {
           try {
@@ -111,7 +111,7 @@ const BuyCourses = () => {
               courseId: selectedCourse._id,
               userId: user._id,
             });
-            
+
             if (verification.success) {
               toast.success('Payment Successful! Enrolling you now...');
               await dispatch(enrollInCourse(selectedCourse._id));
@@ -140,7 +140,7 @@ const BuyCourses = () => {
         setFailureReason(response.error.description || "The transaction was cancelled or declined.");
         setShowFailureModal(true);
         setShowPayment(false);
-        
+
         try {
           await paymentService.recordPaymentFailure({
             razorpay_order_id: response.error.metadata.order_id,
@@ -240,7 +240,7 @@ const BuyCourses = () => {
           </div>
           <h3 className="text-xl font-bold text-slate-900">Unable to load courses</h3>
           <p className="text-red-500 text-sm mt-2 font-medium">{error}</p>
-          <button 
+          <button
             onClick={() => dispatch(fetchAllCourses())}
             className="mt-8 px-8 py-3 bg-slate-900 text-white rounded-xl text-sm font-bold shadow-2xl active:scale-95 transition-all"
           >
@@ -258,7 +258,7 @@ const BuyCourses = () => {
           <h2 className="text-2xl font-bold text-slate-900">Explore Courses</h2>
           <p className="text-slate-500 mt-2">
             {urlSearchQuery
-              ? <>Showing results for <span className="font-bold text-slate-800">&ldquo;{urlSearchQuery}&rdquo;</span></>  
+              ? <>Showing results for <span className="font-bold text-slate-800">&ldquo;{urlSearchQuery}&rdquo;</span></>
               : 'Find the right course to build your skills and advance your career.'}
           </p>
         </div>
@@ -281,11 +281,11 @@ const BuyCourses = () => {
 
       {/* Categories Filter Pills */}
       <div className="flex flex-wrap gap-2.5 pb-2">
-        <button 
+        <button
           onClick={() => setSelectedCategory('All')}
           className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-            selectedCategory === 'All' 
-              ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' 
+            selectedCategory === 'All'
+              ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
               : 'bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-100'
           }`}
         >
@@ -296,8 +296,8 @@ const BuyCourses = () => {
             key={cat._id}
             onClick={() => setSelectedCategory(cat.name)}
             className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-              selectedCategory === cat.name 
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' 
+              selectedCategory === cat.name
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
                 : 'bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-100'
             }`}
           >
@@ -378,7 +378,7 @@ const BuyCourses = () => {
                     </div>
 
                     <div className="pt-2 mt-auto">
-                      <button 
+                      <button
                         onClick={() => handleBuyClick(course, instructor)}
                         className="btn-primary w-full flex items-center justify-center gap-2 text-sm"
                       >
@@ -459,7 +459,7 @@ const BuyCourses = () => {
             </div>
 
             <div className="p-6 border-t border-slate-100">
-              <button 
+              <button
                 className={`btn-primary w-full py-3.5 text-md flex items-center justify-center gap-3 ${
                   isProcessing ? 'opacity-70 cursor-not-allowed' : ''
                 }`}
@@ -497,20 +497,20 @@ const BuyCourses = () => {
                 <h3 className="text-2xl font-black text-slate-900">Payment Failed</h3>
                 <p className="text-slate-500 font-medium">We couldn't process your transaction.</p>
               </div>
-              
+
               <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 text-left">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Error Details</p>
                 <p className="text-sm text-slate-600 font-medium leading-relaxed">{failureReason}</p>
               </div>
 
               <div className="flex flex-col gap-3">
-                <button 
+                <button
                   onClick={() => setShowFailureModal(false)}
                   className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
                 >
                   Try Again
                 </button>
-                <button 
+                <button
                   onClick={() => setShowFailureModal(false)}
                   className="w-full py-4 text-slate-400 font-bold text-sm hover:text-slate-600 transition-colors"
                 >

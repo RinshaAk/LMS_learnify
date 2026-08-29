@@ -99,7 +99,7 @@ function AdminLogin() {
             <span>Administrator Control</span>
           </div>
           <h2 className="text-4xl font-extrabold mb-6 leading-tight">
-            Manage the <span className="text-slate-800">Learnify</span> Ecosystem
+            Manage the <span className="text-slate-800">StackVerseHub</span> Ecosystem
           </h2>
           <p className="text-slate-600 text-lg mb-10">
             Access powerful tools to monitor performance, manage users, and ensure the quality of educational content across the platform.
@@ -120,12 +120,12 @@ function AdminLogin() {
         <div className="w-full max-w-md">
           {/* Header for Mobile */}
           <div className="lg:hidden mb-12 flex items-center justify-center">
-            <img src="/logo.png" alt="Learnify" className="h-10 w-auto" />
+            <img src="/logo.png" alt="StackVerseHub" className="h-10 w-auto" />
           </div>
 
           <div className="mb-10">
             <h2 className="text-3xl font-extrabold mb-3">Admin Login</h2>
-            <p className="text-slate-500 text-sm">Access the Learnify admin dashboard to manage your platform.</p>
+            <p className="text-slate-500 text-sm">Access the StackVerseHub admin dashboard to manage your platform.</p>
           </div>
 
           {apiError && (
@@ -146,7 +146,7 @@ function AdminLogin() {
                 <input
                   type="email"
                   name="email"
-                  placeholder="admin@learnify.com"
+                  placeholder="admin@stackversehub.com"
                   value={formik.values.email}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
@@ -176,7 +176,7 @@ function AdminLogin() {
                 <input
                   type={showPassword ? "text" : "password"}
                   name="password"
-                  placeholder="••••••••"
+                  placeholder="password"
                   value={formik.values.password}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}

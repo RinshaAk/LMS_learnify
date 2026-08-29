@@ -219,7 +219,7 @@ export const createLiveSessionService = async ({
           <p><strong>Topic:</strong> ${title}</p>
           <p><strong>Instructor:</strong> ${instructorName}</p>
           <p><strong>Scheduled At:</strong> ${formattedDate}</p>
-          <p>You can join from your Learnify dashboard when the instructor starts the stream.</p>
+          <p>You can join from your StackVerseHub dashboard when the instructor starts the stream.</p>
         `;
 
         emailSender(enrollment.user.email, mailSubject, mailHtml).catch((error) => {

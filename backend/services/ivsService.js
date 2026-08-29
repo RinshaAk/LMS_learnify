@@ -20,7 +20,7 @@ export const createIvsChannel = async ({
   instructorId,
 }) => {
   const channelName = sanitizeChannelName(
-    `learnify-${instructorId}-${sessionId}`
+    `stackversehub-${instructorId}-${sessionId}`
   );
 
   const command = new CreateChannelCommand({
@@ -37,7 +37,7 @@ export const createIvsChannel = async ({
     authorized: false,
 
     tags: {
-      application: "learnify",
+      application: "stackversehub",
       sessionId: sessionId.toString(),
       instructorId: instructorId.toString(),
     },

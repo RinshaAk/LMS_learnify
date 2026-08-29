@@ -243,7 +243,7 @@ export const generateCertificatePDF = (certData) => {
         .font("Helvetica")
         .fillColor("#94a3b8")
         .fontSize(8)
-        .text("Learnify e-Learning Platform. Verified Certificate of Achievement.", width - 290, height - 98);
+        .text("StackVerseHub e-Learning Platform. Verified Certificate of Achievement.", width - 290, height - 98);
 
       doc.end();
     } catch (error) {

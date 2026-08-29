@@ -24,7 +24,7 @@ const CourseDetails = () => {
   const { id } = useParams();
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  
+
   const [paymentLoading, setPaymentLoading] = useState(false);
 
   const {
@@ -35,7 +35,7 @@ const CourseDetails = () => {
   } = useSelector((state) => state.courses);
 
   const { user } = useSelector((state) => state.auth);
-  
+
   const course = selectedCourse?.details;
 
   useEffect(() => {
@@ -47,7 +47,7 @@ const CourseDetails = () => {
   }, [dispatch, id]);
 
   // Check if student is already enrolled
-  const isEnrolled = enrolledCourses?.some(item => 
+  const isEnrolled = enrolledCourses?.some(item =>
     (item._id === id) || (item.course?._id === id) || (item.course === id)
   );
 
@@ -74,7 +74,7 @@ const CourseDetails = () => {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID,
         amount: data.order.amount,
         currency: "INR",
-        name: "Learnify",
+        name: "StackVerseHub",
         description: `Purchase: ${course.title}`,
         image: course.thumbnail || "https://ui-avatars.com/api/?name=L&background=2563eb&color=fff",
         order_id: data.order.id,
@@ -171,7 +171,7 @@ const CourseDetails = () => {
   return (
     <div className="pb-20 space-y-10 animate-in fade-in duration-700">
       {/* BACK BUTTON */}
-      <button 
+      <button
         onClick={() => navigate(-1)}
         className="flex items-center gap-2 text-slate-500 hover:text-blue-600 font-bold transition-all group"
       >
@@ -262,7 +262,7 @@ const CourseDetails = () => {
           {/* WHAT YOU WILL LEARN */}
           <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm space-y-8 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full -mr-16 -mt-16 transition-all group-hover:scale-150 group-hover:bg-blue-100 duration-700"></div>
-            
+
             <h3 className="text-2xl font-bold text-slate-900 relative z-10">
               What you'll get in this course
             </h3>
@@ -341,7 +341,7 @@ const CourseDetails = () => {
         <div className="space-y-8 sticky top-24">
           <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-2xl space-y-8 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-24 h-24 bg-blue-600 rounded-bl-[4rem] -mr-10 -mt-10 opacity-10"></div>
-            
+
             {/* THUMBNAIL PREVIEW */}
             <div className="relative aspect-video rounded-3xl overflow-hidden group shadow-lg">
               <img

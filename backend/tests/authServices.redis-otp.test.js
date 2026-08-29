@@ -99,7 +99,9 @@ const cleanupEmail = async (email, ip = "127.0.0.1") => {
 const latestOtp = () => {
   const otpEmail = [...sentEmails]
     .reverse()
-    .find((message) => message.subject.includes("OTP"));
+    .find((message) =>
+      message.subject === "Your StackVerseHub Verification Code"
+    );
   const html = otpEmail?.html || "";
   const match = html.match(/\b\d{6}\b/);
   assert.ok(match, "mocked email should contain a six-digit OTP");
@@ -178,7 +180,7 @@ test("missing OTP_SECRET fails safely before sending email", async () => {
   await cleanupEmail(email, ip);
 });
 
-test("stores OTP as HMAC with five-minute TTL and hashed Redis key", async () => {
+test("stores OTP as HMAC with ten-minute TTL, hashed Redis key, and formatted email", async () => {
   const email = "Redis.Otp.Stored@example.com";
   const ip = "10.20.30.40";
   const keys = keysFor(email, ip);
@@ -193,11 +195,18 @@ test("stores OTP as HMAC with five-minute TTL and hashed Redis key", async () =>
   assert.ok(stored, "OTP digest should exist in Redis");
   assert.notEqual(stored, otp);
   assert.equal(stored.length, 64);
-  assert.ok(ttl > 0 && ttl <= 300);
-  assert.ok(ttl >= 295, `expected TTL close to 300 seconds, got ${ttl}`);
+  assert.ok(ttl > 0 && ttl <= 600);
+  assert.ok(ttl >= 595, `expected TTL close to 600 seconds, got ${ttl}`);
   assert.equal(keys.otpKey.includes(keys.normalizedEmail), false);
   assert.equal(await redisClient.get(keys.attemptsKey), null);
   assert.equal(await redisClient.get(keys.verifiedKey), null);
+
+  const emailMessage = sentEmails.at(-1);
+  assert.equal(emailMessage.subject, "Your StackVerseHub Verification Code");
+  assert.match(emailMessage.html, /We received a request to verify your email address for StackVerseHub/);
+  assert.match(emailMessage.html, new RegExp(`>${otp}<`));
+  assert.match(emailMessage.html, /This code will expire in 10 minutes/);
+  assert.match(emailMessage.text, new RegExp(`\\n${otp}\\n`));
 
   await cleanupEmail(email, ip);
 });
@@ -474,7 +483,7 @@ test("instructor remains registered when admin notification fails", async () => 
   sentEmails.length = 0;
   attemptedEmails.length = 0;
   failSubjects.add(
-    "New Instructor Registration Awaiting Review — Learnify"
+    "New Instructor Registration Awaiting Review — StackVerseHub"
   );
 
   const user = await registerUser({
@@ -505,7 +514,7 @@ test("instructor remains registered when instructor confirmation fails", async (
   await verifyOtpService({ email, otp: latestOtp() });
   sentEmails.length = 0;
   attemptedEmails.length = 0;
-  failSubjects.add("Instructor Application Received — Learnify");
+  failSubjects.add("Instructor Application Received — StackVerseHub");
 
   const user = await registerUser({
     name: "Instructor Notify Fail",

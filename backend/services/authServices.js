@@ -10,7 +10,7 @@ import {
   buildInstructorRegistrationConfirmationEmail,
 } from "../utils/instructorRegistrationEmails.js";
 
-const OTP_TTL_SECONDS = 5 * 60;
+const OTP_TTL_SECONDS = 10 * 60;
 const OTP_VERIFIED_TTL_SECONDS = 10 * 60;
 const OTP_ATTEMPT_TTL_SECONDS = OTP_TTL_SECONDS;
 const OTP_MAX_ATTEMPTS = 5;
@@ -146,6 +146,31 @@ const removeOtpState = async (email) => {
   await redisClient.del([otpKey, attemptsKey]);
 };
 
+const buildOtpEmail = (otp) => ({
+  subject: "Your StackVerseHub Verification Code",
+  html: `
+    <div style="font-family:Arial,Helvetica,sans-serif;color:#0f172a;line-height:1.6;">
+      <p>Hello,</p>
+      <p>We received a request to verify your email address for StackVerseHub.</p>
+      <p>Your verification code is:</p>
+      <p style="font-size:28px;font-weight:700;letter-spacing:0.18em;color:#2563eb;margin:16px 0;">${otp}</p>
+      <p>This code will expire in 10 minutes. Please do not share it with anyone.</p>
+      <p>If you did not request this code, you can safely ignore this email.</p>
+      <p>Best regards,<br />StackVerseHub Team</p>
+    </div>
+  `,
+  text: [
+    "Hello,",
+    "We received a request to verify your email address for StackVerseHub.",
+    "Your verification code is:",
+    otp,
+    "This code will expire in 10 minutes. Please do not share it with anyone.",
+    "If you did not request this code, you can safely ignore this email.",
+    "Best regards,",
+    "StackVerseHub Team",
+  ].join("\n"),
+});
+
 const sendInstructorRegistrationNotifications = async (user) => {
   if (user.role !== "instructor") {
     return;
@@ -202,7 +227,12 @@ export const registerUser = async ({ name, email, password, role }) => {
   const existingUser = await User.findOne({ email: normalizedEmail });
 
   if (existingUser) {
-    const error = new Error("User already registered");
+    const registeredRole = existingUser.role || "another";
+    const error = new Error(
+      registeredRole === role
+        ? "This email is already registered. Please sign in instead, or use Forgot Password if you cannot access your account."
+        : `This email is already registered as a ${registeredRole} account. Please use a different email to create a ${role} account.`
+    );
     error.statusCode = 400;
     throw error;
   }
@@ -261,12 +291,14 @@ export const requestOtpService = async ({ email, ip }) => {
 
   const otp = generateOTP();
   await storeNewOtp({ email: normalizedEmail, otp });
+  const otpEmail = buildOtpEmail(otp);
 
   try {
     await sendEmail(
       normalizedEmail,
-      "Your OTP Code",
-      `Your OTP is ${otp}`
+      otpEmail.subject,
+      otpEmail.html,
+      otpEmail.text
     );
   } catch (error) {
     await removeOtpState(normalizedEmail);
@@ -401,9 +433,15 @@ export const resendOtpService = async ({ email, ip }) => {
 
   const otp = generateOTP();
   await storeNewOtp({ email: normalizedEmail, otp });
+  const otpEmail = buildOtpEmail(otp);
 
   try {
-    await sendEmail(normalizedEmail, "New OTP", `Your OTP is ${otp}`);
+    await sendEmail(
+      normalizedEmail,
+      otpEmail.subject,
+      otpEmail.html,
+      otpEmail.text
+    );
   } catch (error) {
     await removeOtpState(normalizedEmail);
     throw error;

@@ -76,7 +76,7 @@ export const createMissionService = async (instructorId, missionData) => {
                 </div>
 
                 <p style="font-size: 12px; color: #64748b; margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 16px;">
-                  This is an automated notification from Learnify. Please do not reply directly to this email.
+                  This is an automated notification from StackVerseHub. Please do not reply directly to this email.
                 </p>
               </div>
             </div>

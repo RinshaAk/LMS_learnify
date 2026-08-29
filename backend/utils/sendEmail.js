@@ -7,6 +7,7 @@ export class EmailDeliveryError extends Error {
     super(message);
     this.name = "EmailDeliveryError";
     this.statusCode = 503;
+    this.code = "EMAIL_DELIVERY_FAILED";
   }
 }
 
@@ -62,7 +63,7 @@ export const sendEmail = async (
     const transporter = createTransporter();
 
     const info = await transporter.sendMail({
-      from: `"Learnify" <${emailUser}>`,
+      from: `"StackVerseHub" <${emailUser}>`,
       to: to.trim(),
       subject,
       html,
@@ -109,8 +110,12 @@ export const sendEmail = async (
         "Username and Password not accepted"
       )
     ) {
+      console.error(
+        "Email provider authentication failed. Check EMAIL_USER and EMAIL_PASS / Gmail App Password."
+      );
+
       throw new EmailDeliveryError(
-        "Email authentication failed. Please check your Gmail App Password."
+        "We could not send your verification code because StackVerseHub's email service is temporarily unavailable. Your account was not created yet. Please try again later or contact support."
       );
     }
 
@@ -124,10 +129,10 @@ export const generateOTP = () => {
   ).toString();
 };
 
-// OTP expires three minutes after generation.
+// OTP expires ten minutes after generation.
 export const getOtpExpiry = () => {
   return new Date(
-    Date.now() + 3 * 60 * 1000
+    Date.now() + 10 * 60 * 1000
   );
 };
 

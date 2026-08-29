@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { 
-  ShieldCheck, 
-  Clock, 
-  AlertCircle, 
-  CheckCircle2, 
-  User, 
-  GraduationCap, 
-  Briefcase, 
-  BookOpen, 
-  Phone, 
+import {
+  ShieldCheck,
+  Clock,
+  AlertCircle,
+  CheckCircle2,
+  User,
+  GraduationCap,
+  Briefcase,
+  BookOpen,
+  Phone,
   MapPin,
   Save,
   Loader2,
@@ -24,7 +24,7 @@ const InstructorVerification = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { user, loading, error, success } = useSelector((state) => state.auth);
-  
+
   const [certLoading, setCertLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -96,7 +96,7 @@ const InstructorVerification = () => {
       ...formData,
       certifications: formData.certifications.split(',').map(s => s.trim()).filter(s => s),
     };
-    
+
     try {
       // Use the dedicated verification endpoint
       await axiosInstance.post('/instructor/verify', data);
@@ -118,10 +118,10 @@ const InstructorVerification = () => {
             </div>
             <div>
               <h1 className="text-3xl font-black text-slate-900 tracking-tight">Instructor Details / Qualification</h1>
-              <p className="text-slate-500 font-medium">Verify your expertise to start teaching on Learnify</p>
+              <p className="text-slate-500 font-medium">Verify your expertise to start teaching on StackVerseHub</p>
             </div>
           </div>
-          <button 
+          <button
             onClick={() => dispatch(logout())}
             className="flex items-center gap-2 text-slate-500 hover:text-red-500 font-bold transition-all px-4 py-2 bg-white rounded-xl border border-slate-200 shadow-sm"
           >
@@ -141,14 +141,14 @@ const InstructorVerification = () => {
                 </div>
                 <h3 className="text-xl font-bold text-slate-900">Personal & Academic Details</h3>
               </div>
-              
+
               <div className="grid md:grid-cols-2 gap-8">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 ml-1">Full Name</label>
                   <div className="relative">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       name="name"
                       value={formData.name}
                       onChange={handleInputChange}
@@ -162,8 +162,8 @@ const InstructorVerification = () => {
                   <label className="text-sm font-bold text-slate-700 ml-1">Highest Qualification</label>
                   <div className="relative">
                     <GraduationCap className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       name="education"
                       value={formData.education}
                       onChange={handleInputChange}
@@ -177,8 +177,8 @@ const InstructorVerification = () => {
                   <label className="text-sm font-bold text-slate-700 ml-1">College / University Name</label>
                   <div className="relative">
                     <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       name="college"
                       value={formData.college}
                       onChange={handleInputChange}
@@ -191,8 +191,8 @@ const InstructorVerification = () => {
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <label className="text-sm font-bold text-slate-700 ml-1">Degree / Course</label>
-                        <input 
-                            type="text" 
+                        <input
+                            type="text"
                             name="degree"
                             value={formData.degree}
                             onChange={handleInputChange}
@@ -203,8 +203,8 @@ const InstructorVerification = () => {
                     </div>
                     <div className="space-y-2">
                         <label className="text-sm font-bold text-slate-700 ml-1">Graduation Year</label>
-                        <input 
-                            type="text" 
+                        <input
+                            type="text"
                             name="graduationYear"
                             value={formData.graduationYear}
                             onChange={handleInputChange}
@@ -225,14 +225,14 @@ const InstructorVerification = () => {
                 </div>
                 <h3 className="text-xl font-bold text-slate-900">Teaching Experience</h3>
               </div>
-              
+
               <div className="grid md:grid-cols-2 gap-8">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 ml-1">Subjects You Can Teach</label>
                   <div className="relative">
                     <BookOpen className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       name="expertise"
                       value={formData.expertise}
                       onChange={handleInputChange}
@@ -246,8 +246,8 @@ const InstructorVerification = () => {
                   <label className="text-sm font-bold text-slate-700 ml-1">Years of Teaching Experience</label>
                   <div className="relative">
                     <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       name="experience"
                       value={formData.experience}
                       onChange={handleInputChange}
@@ -261,8 +261,8 @@ const InstructorVerification = () => {
                   <label className="text-sm font-bold text-slate-700 ml-1">Certificates or Achievements</label>
                   <div className="relative">
                     <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <input 
-                      type="file" 
+                    <input
+                      type="file"
                       onChange={handleCertUpload}
                       disabled={certLoading}
                       className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
@@ -286,14 +286,14 @@ const InstructorVerification = () => {
                 </div>
                 <h3 className="text-xl font-bold text-slate-900">Contact & About</h3>
               </div>
-              
+
               <div className="grid md:grid-cols-2 gap-8">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 ml-1">Phone Number</label>
                   <div className="relative">
                     <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <input 
-                      type="tel" 
+                    <input
+                      type="tel"
                       name="phone"
                       value={formData.phone}
                       onChange={(e) => {
@@ -310,8 +310,8 @@ const InstructorVerification = () => {
                   <label className="text-sm font-bold text-slate-700 ml-1">Place / Location</label>
                   <div className="relative">
                     <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       name="location"
                       value={formData.location}
                       onChange={(e) => {
@@ -326,7 +326,7 @@ const InstructorVerification = () => {
                 </div>
                 <div className="md:col-span-2 space-y-2">
                   <label className="text-sm font-bold text-slate-700 ml-1">Short Bio / About Yourself</label>
-                  <textarea 
+                  <textarea
                     name="bio"
                     value={formData.bio}
                     onChange={handleInputChange}
@@ -339,7 +339,7 @@ const InstructorVerification = () => {
             </div>
 
             <div className="pt-6">
-              <button 
+              <button
                 type="submit"
                 disabled={loading}
                 className="w-full py-5 bg-blue-600 text-white rounded-[2rem] font-bold text-lg shadow-2xl shadow-blue-100 hover:bg-blue-700 transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:bg-blue-400"

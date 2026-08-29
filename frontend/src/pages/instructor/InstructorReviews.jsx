@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchInstructorDashboard, fetchInstructorStudents, fetchReviewHistory } from '../../features/instructor/instructorThunk';
-import { 
-  Calendar, 
-  Clock, 
-  User, 
-  BookOpen, 
-  Video, 
-  Plus, 
-  Search, 
-  Filter, 
-  ChevronRight, 
+import {
+  Calendar,
+  Clock,
+  User,
+  BookOpen,
+  Video,
+  Plus,
+  Search,
+  Filter,
+  ChevronRight,
   History,
   CheckCircle2,
   XCircle,
@@ -80,11 +80,11 @@ const InstructorReviews = () => {
   };
 
   const getRoomIdFromLink = (link) => {
-    if (!link) return 'learnify-room';
+    if (!link) return 'stackversehub-room';
     try {
       if (link.startsWith('http://') || link.startsWith('https://')) {
         const url = new URL(link);
-        return url.pathname.replace(/^\//, '') || 'learnify-room';
+        return url.pathname.replace(/^\//, '') || 'stackversehub-room';
       }
       return link;
     } catch (e) {
@@ -227,7 +227,7 @@ const InstructorReviews = () => {
           <h2 className="text-3xl font-black text-slate-900 tracking-tight">Reviews & Schedules</h2>
           <p className="text-slate-500 mt-1 font-medium">Schedule and manage 1-on-1 review sessions with your students.</p>
         </div>
-        <button 
+        <button
           onClick={() => setShowScheduleForm(true)}
           className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-bold text-sm shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all flex items-center gap-3 active:scale-95"
         >
@@ -261,7 +261,7 @@ const InstructorReviews = () => {
               {activeReviews.map((item) => (
                 <div key={item._id} className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:border-blue-300 transition-all group p-6 md:p-8">
                   <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                    
+
                     <div className="flex items-center gap-5 w-full md:w-auto">
                       <div className="w-16 h-16 rounded-2xl flex flex-col items-center justify-center border-2 border-slate-100 text-slate-500 bg-slate-50 shrink-0">
                         <Calendar size={20} />
@@ -290,7 +290,7 @@ const InstructorReviews = () => {
                       </div>
 
                       <div className="flex items-center gap-3">
-                        <button 
+                        <button
                           type="button"
                           onClick={() => {
                             setEvaluatingSession(item);
@@ -305,7 +305,7 @@ const InstructorReviews = () => {
                           <CheckCircle2 size={16} />
                           Evaluate
                         </button>
-                        <button 
+                        <button
                           type="button"
                           onClick={() => {
                             const room = getRoomIdFromLink(item.meetingLink);
@@ -420,12 +420,12 @@ const InstructorReviews = () => {
                 <XCircle size={24} />
               </button>
             </div>
-            
+
             <form onSubmit={handleConfirmSchedule} className="p-10 space-y-8">
               <div className="grid md:grid-cols-2 gap-8">
                 <div className="space-y-3">
                   <label htmlFor="schedule-course-select" className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Select Course</label>
-                  <select 
+                  <select
                     id="schedule-course-select"
                     name="courseId"
                     value={selectedCourseId}
@@ -440,10 +440,10 @@ const InstructorReviews = () => {
                     {courses.length === 0 && <option disabled>No courses available</option>}
                   </select>
                 </div>
-                
+
                 <div className="space-y-3">
                   <label htmlFor="schedule-student-select" className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Select Student</label>
-                  <select 
+                  <select
                     id="schedule-student-select"
                     name="studentId"
                     value={selectedStudentId}
@@ -464,13 +464,13 @@ const InstructorReviews = () => {
                     {students.length === 0 && <option disabled>No students found</option>}
                   </select>
                 </div>
-                
+
                 <div className="space-y-3">
                   <label htmlFor="schedule-date-input" className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Date</label>
-                  <input 
+                  <input
                     id="schedule-date-input"
                     name="date"
-                    type="date" 
+                    type="date"
                     value={selectedDate}
                     onChange={(e) => setSelectedDate(e.target.value)}
                     onClick={(e) => {
@@ -481,16 +481,16 @@ const InstructorReviews = () => {
                       }
                     }}
                     className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                    required 
+                    required
                   />
                 </div>
-                
+
                 <div className="space-y-3">
                   <label htmlFor="schedule-time-input" className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Time</label>
-                  <input 
+                  <input
                     id="schedule-time-input"
                     name="time"
-                    type="time" 
+                    type="time"
                     value={selectedTime}
                     onChange={(e) => setSelectedTime(e.target.value)}
                     onClick={(e) => {
@@ -501,25 +501,25 @@ const InstructorReviews = () => {
                       }
                     }}
                     className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                    required 
+                    required
                   />
                 </div>
               </div>
-              
+
               <div className="space-y-3">
                 <label htmlFor="schedule-meeting-link" className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Meeting Room ID</label>
                 <div className="relative flex items-center">
-                  <input 
+                  <input
                     id="schedule-meeting-link"
                     name="meetingLink"
-                    type="text" 
+                    type="text"
                     value={meetingLink}
                     onChange={(e) => setMeetingLink(e.target.value)}
-                    placeholder="e.g. abc-defg-hij" 
+                    placeholder="e.g. abc-defg-hij"
                     className="w-full pr-32 px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                    required 
+                    required
                   />
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setMeetingLink(generateRoomId())}
                     className="absolute right-2 px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl font-bold text-xs transition-colors"
@@ -528,7 +528,7 @@ const InstructorReviews = () => {
                   </button>
                 </div>
               </div>
-              
+
               <div className="pt-6">
                 <button type="submit" className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-sm hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 active:scale-95">
                   Confirm Schedule
@@ -553,14 +553,14 @@ const InstructorReviews = () => {
                   Course: {evaluatingSession.course?.title}
                 </p>
               </div>
-              <button 
-                onClick={() => setShowEvalModal(false)} 
+              <button
+                onClick={() => setShowEvalModal(false)}
                 className="p-3 hover:bg-slate-100 rounded-2xl text-slate-400 transition-colors shrink-0"
               >
                 <XCircle size={24} />
               </button>
             </div>
-            
+
             <form onSubmit={handleConfirmEvaluation} className="p-8 space-y-6 overflow-y-auto flex-1">
               {/* Pass / Fail Selection */}
               <div className="space-y-3">
