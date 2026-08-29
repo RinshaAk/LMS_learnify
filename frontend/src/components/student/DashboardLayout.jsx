@@ -100,8 +100,9 @@ const DashboardLayout = () => {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="h-16 flex items-center px-6 border-b border-slate-100 shrink-0">
-            <Link to="/student/dashboard" className="flex items-center">
-              <img src="/logo.png" alt="StackVerseHub" className="h-7 w-auto" />
+            <Link to="/student/dashboard" className="flex items-center gap-3 min-w-0">
+              <img src="/logo.png" alt="StackVerseHub" className="h-8 w-8 rounded-md object-contain shrink-0" />
+              <span className="truncate text-base font-extrabold tracking-tight text-slate-950">StackVerse Hub</span>
             </Link>
           </div>
 
