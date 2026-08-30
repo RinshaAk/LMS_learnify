@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+﻿import mongoose from "mongoose";
 
 const courseSchema = new mongoose.Schema(
   {
@@ -98,6 +98,10 @@ courseSchema.virtual("modules", {
 
 courseSchema.set("toObject", { virtuals: true });
 courseSchema.set("toJSON", { virtuals: true });
+
+courseSchema.index({ status: 1, approvalStatus: 1, isHidden: 1, isBlocked: 1, createdAt: -1 });
+courseSchema.index({ instructor: 1, createdAt: -1 });
+courseSchema.index({ category: 1, status: 1, approvalStatus: 1, createdAt: -1 });
 
 const Course = mongoose.model("Course", courseSchema);
 

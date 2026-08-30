@@ -17,6 +17,69 @@ import { asyncHandler } from "../middleware/trycatchmiddleware.js";
 import StudentReview from "../models/StudentReview.js";
 import Review from "../models/Review.js";
 import { createNotification } from "./notificationController.js";
+import { sendEmail } from "../utils/sendEmail.js";
+
+const escapeHtml = (value = "") =>
+  String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+const buildReviewScheduledEmail = ({
+  studentName,
+  instructorName,
+  courseTitle,
+  date,
+  time,
+  meetingLink,
+}) => {
+  const subject = `Review session scheduled for ${courseTitle}`;
+  const safeStudentName = escapeHtml(studentName);
+  const safeInstructorName = escapeHtml(instructorName);
+  const safeCourseTitle = escapeHtml(courseTitle);
+  const safeDate = escapeHtml(date);
+  const safeTime = escapeHtml(time);
+  const safeMeetingLink = escapeHtml(meetingLink);
+  const text = [
+    `Hi ${studentName},`,
+    "",
+    `${instructorName} has scheduled a 1-on-1 review session for ${courseTitle}.`,
+    "",
+    `Date: ${date}`,
+    `Time: ${time}`,
+    `Meeting link: ${meetingLink}`,
+    "",
+    "Please join the session on time.",
+    "",
+    "This is an automated notification from StackVerseHub.",
+  ].join("\n");
+  const html = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
+      <p>Hi ${safeStudentName},</p>
+      <p><strong>${safeInstructorName}</strong> has scheduled a 1-on-1 review session for <strong>${safeCourseTitle}</strong>.</p>
+      <table style="border-collapse: collapse; margin: 16px 0;">
+        <tr>
+          <td style="padding: 6px 12px 6px 0; color: #4b5563;">Date</td>
+          <td style="padding: 6px 0;"><strong>${safeDate}</strong></td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 12px 6px 0; color: #4b5563;">Time</td>
+          <td style="padding: 6px 0;"><strong>${safeTime}</strong></td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 12px 6px 0; color: #4b5563;">Meeting link</td>
+          <td style="padding: 6px 0;"><a href="${safeMeetingLink}">${safeMeetingLink}</a></td>
+        </tr>
+      </table>
+      <p>Please join the session on time.</p>
+      <p style="color: #6b7280; font-size: 13px;">This is an automated notification from StackVerseHub.</p>
+    </div>
+  `;
+
+  return { subject, html, text };
+};
 
 // ✅ Create Course Draft
 export const createCourseDraft = asyncHandler(async (req, res) => {
@@ -175,7 +238,8 @@ export const scheduleReviewSession = asyncHandler(async (req, res) => {
   // 🔔 Notify the student about the scheduled review
   const populatedSession = await StudentReview.findById(session._id)
     .populate("course", "title")
-    .populate("instructor", "name");
+    .populate("student", "name email")
+    .populate("instructor", "name email");
   createNotification({
     recipient: studentId,
     type: 'review_scheduled',
@@ -184,10 +248,51 @@ export const scheduleReviewSession = asyncHandler(async (req, res) => {
     link: '/student/reviews',
   });
 
+  let reviewEmailSent = false;
+  let reviewEmailError = null;
+
+  if (populatedSession?.student?.email) {
+    const studentName = populatedSession.student.name || "Student";
+    const instructorName = populatedSession.instructor?.name || "Your instructor";
+    const instructorEmail = populatedSession.instructor?.email;
+    const courseTitle = populatedSession.course?.title || "your course";
+    const reviewEmail = buildReviewScheduledEmail({
+      studentName,
+      instructorName,
+      courseTitle,
+      date,
+      time,
+      meetingLink,
+    });
+
+    try {
+      await sendEmail(
+        populatedSession.student.email,
+        reviewEmail.subject,
+        reviewEmail.html,
+        reviewEmail.text,
+        instructorEmail ? { replyTo: instructorEmail } : {}
+      );
+      reviewEmailSent = true;
+    } catch (error) {
+      reviewEmailError = error.message;
+      console.error("Review session email failed:", {
+        sessionId: session._id,
+        studentId,
+        email: populatedSession.student.email,
+        error: error.message,
+      });
+    }
+  }
+
   res.status(201).json({
     success: true,
-    message: "Review session scheduled successfully",
-    data: session
+    message: reviewEmailSent
+      ? "Review session scheduled successfully and email sent"
+      : "Review session scheduled successfully, but email could not be sent",
+    data: session,
+    reviewEmailSent,
+    reviewEmailError,
   });
 });
 

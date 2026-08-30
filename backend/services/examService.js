@@ -3,6 +3,7 @@ import Enrollment from "../models/Enrollment.js";
 import ExamAttempt from "../models/ExamAttempt.js";
 import Course from "../models/Course.js";
 import { checkAndCreatePendingCertificate } from "./certificateService.js";
+import { createPresignedPdfUrl, deletePdfFromS3 } from "../utils/s3Uploads.js";
 
 const createHttpError = (message, statusCode = 400) => {
   const error = new Error(message);
@@ -13,12 +14,42 @@ const createHttpError = (message, statusCode = 400) => {
 const getExamStart = (exam) => exam.scheduledAt || exam.scheduledDate;
 
 const getExamEnd = (exam) => {
+  if (exam.taskType === "task" || exam.type === "mission_task") {
+    return exam.deadline || null;
+  }
+
   const start = getExamStart(exam);
   const duration = Number(exam.duration || 0);
   if (start && duration > 0) {
     return new Date(new Date(start).getTime() + duration * 60 * 1000);
   }
   return exam.deadline || null;
+};
+
+const isExternalUrl = (value) => /^https?:\/\//i.test(String(value || ""));
+const isS3PdfKey = (value) => String(value || "").startsWith("pdfs/");
+const getExamPdfReferences = (exam) => {
+  const values = [
+    exam.attachment,
+    ...(Array.isArray(exam.attachments) ? exam.attachments : []),
+  ].filter(Boolean);
+
+  return [...new Set(values)];
+};
+
+const hasStudentAssignmentRestriction = (exam) => Array.isArray(exam.assignedStudents) && exam.assignedStudents.length > 0;
+
+const isStudentAssignedToExam = (exam, userId) => {
+  if (!hasStudentAssignmentRestriction(exam)) return true;
+  return exam.assignedStudents.some((studentId) => studentId.toString() === userId);
+};
+
+const deleteS3PdfReferences = async (references) => {
+  const keys = [...new Set((references || []).filter(isS3PdfKey))];
+
+  for (const key of keys) {
+    await deletePdfFromS3(key);
+  }
 };
 
 const normalizeStatus = (exam, now = new Date()) => {
@@ -162,8 +193,14 @@ export const getEnrolledStudentExamsService = async (userId) => {
   const exams = await Exam.find({
     isDraft: { $ne: true },
     $or: [
-      { course: { $in: courseIds } },
       { assignedStudents: userId },
+      {
+        course: { $in: courseIds },
+        $or: [
+          { assignedStudents: { $exists: false } },
+          { assignedStudents: { $size: 0 } },
+        ],
+      },
     ],
   })
     .populate("course", "title")
@@ -194,11 +231,16 @@ export const updateExamService = async (examId, instructorId, updates) => {
   if (!exam) throw createHttpError("Exam not found", 404);
   if (exam.instructor.toString() !== instructorId) throw createHttpError("Not authorized", 403);
 
+  const previousPdfReferences = getExamPdfReferences(exam);
   const validationPayload = updates.isDraft === false
     ? { ...exam.toObject(), ...updates }
     : updates;
   await validateExamPayload(validationPayload, instructorId, updates.isDraft !== false);
   Object.assign(exam, updates);
+  const nextPdfReferences = getExamPdfReferences(exam);
+  const removedPdfReferences = previousPdfReferences.filter((item) => !nextPdfReferences.includes(item));
+
+  await deleteS3PdfReferences(removedPdfReferences);
   return await exam.save();
 };
 
@@ -208,6 +250,7 @@ export const deleteExamService = async (examId, instructorId) => {
   if (!exam) throw createHttpError("Exam not found", 404);
   if (exam.instructor.toString() !== instructorId) throw createHttpError("Not authorized", 403);
 
+  await deleteS3PdfReferences(getExamPdfReferences(exam));
   await Exam.findByIdAndDelete(examId);
   await ExamAttempt.deleteMany({ exam: examId });
   return { message: "Exam and associated attempts deleted successfully" };
@@ -251,10 +294,51 @@ export const getSingleExamService = async (examId, user) => {
     const enrollment = await Enrollment.findOne({ user: user.id, course: exam.course._id });
     const directlyAssigned = exam.assignedStudents?.some((studentId) => studentId.toString() === user.id);
     if (!enrollment && !directlyAssigned) throw createHttpError("Not authorized", 403);
+    if (enrollment && !isStudentAssignedToExam(exam, user.id)) throw createHttpError("Not authorized", 403);
     if (exam.isDraft) throw createHttpError("Exam is not published", 403);
   }
 
   return exam;
+};
+
+export const getExamResourceUrlService = async (examId, user, resourceKey) => {
+  await updateExamStatusesService();
+  const exam = await Exam.findById(examId).populate("course", "title");
+  if (!exam) throw createHttpError("Exam not found", 404);
+
+  if (user.role === "instructor" && exam.instructor.toString() !== user.id) {
+    throw createHttpError("Not authorized", 403);
+  }
+
+  if (user.role === "student") {
+    const enrollment = await Enrollment.findOne({ user: user.id, course: exam.course._id });
+    const directlyAssigned = exam.assignedStudents?.some((studentId) => studentId.toString() === user.id);
+    if (!enrollment && !directlyAssigned) throw createHttpError("Not authorized", 403);
+    if (enrollment && !isStudentAssignedToExam(exam, user.id)) throw createHttpError("Not authorized", 403);
+    if (exam.isDraft) throw createHttpError("Exam is not published", 403);
+  }
+
+  const references = getExamPdfReferences(exam);
+  const selectedResource = resourceKey || exam.attachment || references[0];
+
+  if (!selectedResource) {
+    throw createHttpError("No PDF resource found", 404);
+  }
+
+  if (!references.includes(selectedResource)) {
+    throw createHttpError("PDF resource does not belong to this assessment", 403);
+  }
+
+  if (isExternalUrl(selectedResource)) {
+    return { url: selectedResource, expiresIn: null, storage: "legacy" };
+  }
+
+  if (!isS3PdfKey(selectedResource)) {
+    throw createHttpError("Invalid PDF reference", 400);
+  }
+
+  const signed = await createPresignedPdfUrl(selectedResource);
+  return { ...signed, storage: "s3" };
 };
 
 export const publishExamService = async (examId, instructorId) => {

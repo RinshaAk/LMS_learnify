@@ -1,4 +1,5 @@
-import express from "express";
+﻿import express from "express";
+import { rateLimitPolicies } from "../middleware/rateLimiter.js";
 
 import { asyncHandler } from "../middleware/trycatchmiddleware.js";
 
@@ -230,12 +231,16 @@ router.get(
 
 router.post(
   "/forgot-password",
+  rateLimitPolicies.password,
   forgotPassword
 );
 
 router.post(
   "/reset-password/:token",
+  rateLimitPolicies.password,
   resetPassword
 );
 
 export default router;
+
+

@@ -1,4 +1,4 @@
-import { 
+﻿import { 
   deleteCourseAdminService, 
   deleteUserService, 
   getAllCoursesAdminService, 
@@ -26,7 +26,7 @@ import {
   getReportsDataService
 } from "../services/adminServices.js";
 
-// ✅ Get admin dashboard stats
+// âœ… Get admin dashboard stats
 export const getAdminStats = async (req, res, next) => {
   try {
     const stats = await getAdminStatsService();
@@ -36,10 +36,10 @@ export const getAdminStats = async (req, res, next) => {
   }
 };
 
-// ✅ Users
+// âœ… Users
 export const getAllUsers = async (req, res, next) => {
   try {
-    const users = await getAllUsersService();
+    const users = await getAllUsersService(req.query);
     res.json(users);
   } catch (error) {
     next(error);
@@ -55,10 +55,10 @@ export const deleteUser = async (req, res, next) => {
   }
 };
 
-// ✅ Courses
+// âœ… Courses
 export const getAllCoursesAdmin = async (req, res, next) => {
   try {
-    const courses = await getAllCoursesAdminService();
+    const courses = await getAllCoursesAdminService(req.query);
     res.json(courses);
   } catch (error) {
     next(error);
@@ -95,7 +95,7 @@ export const updateCourseStatus = async (req, res, next) => {
   }
 };
 
-// ✅ Instructor Requests
+// âœ… Instructor Requests
 export const getInstructorRequests = async (req, res, next) => {
   try {
     const requests = await getInstructorRequestsService();
@@ -130,7 +130,7 @@ export const rejectInstructor = async (req, res, next) => {
   }
 };
 
-// ✅ Categories
+// âœ… Categories
 export const getAllCategories = async (req, res, next) => {
   try {
     const categories = await getAllCategoriesService();
@@ -167,7 +167,7 @@ export const updateCategory = async (req, res, next) => {
   }
 };
 
-// ✅ Offers
+// âœ… Offers
 export const getAllOffers = async (req, res, next) => {
   try {
     const offers = await getAllOffersService();
@@ -195,7 +195,7 @@ export const deleteOffer = async (req, res, next) => {
   }
 };
 
-// ✅ Earnings & Payments
+// âœ… Earnings & Payments
 export const getEarnings = async (req, res, next) => {
   try {
     const earnings = await getEarningsService();
@@ -207,7 +207,7 @@ export const getEarnings = async (req, res, next) => {
 
 export const getAllPayments = async (req, res, next) => {
   try {
-    const payments = await getAllPaymentsService();
+    const payments = await getAllPaymentsService(req.query);
     res.json(payments);
   } catch (error) {
     next(error);
@@ -224,10 +224,10 @@ export const getPaymentById = async (req, res, next) => {
   }
 };
 
-// ✅ Availability & Live Sessions
+// âœ… Availability & Live Sessions
 export const getInstructorAvailability = async (req, res, next) => {
   try {
-    const availability = await getInstructorAvailabilityService();
+    const availability = await getInstructorAvailabilityService(req.query);
     res.json(availability);
   } catch (error) {
     next(error);
@@ -236,17 +236,17 @@ export const getInstructorAvailability = async (req, res, next) => {
 
 export const getAdminLiveSessions = async (req, res, next) => {
   try {
-    const sessions = await getAdminLiveSessionsService();
+    const sessions = await getAdminLiveSessionsService(req.query);
     res.json(sessions);
   } catch (error) {
     next(error);
   }
 };
 
-// ✅ User Blocking
+// âœ… User Blocking
 export const getBlockedUsers = async (req, res, next) => {
   try {
-    const users = await getBlockedUsersService();
+    const users = await getBlockedUsersService(req.query);
     res.json(users);
   } catch (error) {
     next(error);
@@ -318,3 +318,4 @@ export const getReportsData = async (req, res, next) => {
     next(error);
   }
 };
+

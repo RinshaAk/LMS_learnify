@@ -1,14 +1,15 @@
-import axios from "axios";
+﻿import axios from "axios";
 
-// Create instance
+const API_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS || 15000);
+
 const axiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api",
+  timeout: API_TIMEOUT_MS,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// 🔐 Request Interceptor (attach token)
 axiosInstance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
@@ -22,18 +23,19 @@ axiosInstance.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// ⚠️ Response Interceptor (handle errors globally)
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Example: Unauthorized (token expired)
-    if (error.response && error.response.status === 401 && !error.config.url.includes('/auth/')) {
+    if (error.code === "ECONNABORTED") {
+      error.userMessage = "The request took too long. Please try again.";
+    }
+
+    if (error.response && error.response.status === 401 && !error.config.url.includes("/auth/")) {
       console.log("Unauthorized! Logging out...");
 
-      // Check if this was a login or registration request
       const isAuthRequest = error.config && (
-        error.config.url.includes("/auth/login") || 
-        error.config.url.includes("/auth/register") || 
+        error.config.url.includes("/auth/login") ||
+        error.config.url.includes("/auth/register") ||
         error.config.url.includes("/auth/google")
       );
 
@@ -41,10 +43,9 @@ axiosInstance.interceptors.response.use(
         localStorage.removeItem("token");
         localStorage.removeItem("user");
 
-        // Redirect to appropriate login page based on current path
         const currentPath = window.location.pathname;
         let redirectPath = "/login";
-        
+
         if (currentPath.startsWith("/admin")) {
           redirectPath = "/admin/login";
         } else if (currentPath.startsWith("/instructor")) {
@@ -59,4 +60,4 @@ axiosInstance.interceptors.response.use(
   }
 );
 
-export default axiosInstance; 
+export default axiosInstance;

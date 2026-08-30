@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   Plus,
   Video,
@@ -174,7 +174,7 @@ const CreateCourse = () => {
       newModules[moduleIndex].lessons[lessonIndex].uploading = true;
       setModules(newModules);
 
-      const result = await uploadVideo(file);
+      const result = await uploadVideo(file, courseId);
 
       const updatedModules = [...modules];
       updatedModules[moduleIndex].lessons[lessonIndex].videoUrl = result.url;
@@ -184,7 +184,7 @@ const CreateCourse = () => {
       toast.success("Video uploaded successfully!", { id: uploadToast });
     } catch (error) {
       console.error("Video upload failed:", error);
-      toast.error("Failed to upload video.", { id: uploadToast });
+      toast.error(error.userMessage || error.response?.data?.message || error.message || "Failed to upload video.", { id: uploadToast });
 
       const resetModules = [...modules];
       resetModules[moduleIndex].lessons[lessonIndex].uploading = false;
@@ -576,7 +576,7 @@ const CreateCourse = () => {
           <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="grid md:grid-cols-2 gap-10">
                <div className="space-y-4">
-                  <label className="text-sm font-black text-slate-900 uppercase tracking-widest">Base Price (₹)</label>
+                  <label className="text-sm font-black text-slate-900 uppercase tracking-widest">Base Price (â‚¹)</label>
                   <div className="relative">
                     <IndianRupee size={18} className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
@@ -706,3 +706,4 @@ const CreateCourse = () => {
 };
 
 export default CreateCourse;
+

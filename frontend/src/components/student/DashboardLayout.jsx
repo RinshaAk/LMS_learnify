@@ -64,6 +64,7 @@ const DashboardLayout = () => {
     { name: 'Dashboard', icon: <LayoutDashboard size={18} />, path: '/student/dashboard' },
     { name: 'My Courses', icon: <BookOpen size={18} />, path: '/student/courses' },
     { name: 'Exams', icon: <FileText size={18} />, path: '/student/exams' },
+    { name: 'Exam Result', icon: <ClipboardCheck size={18} />, path: '/student/exam-results' },
     { name: 'Reviews', icon: <ClipboardCheck size={18} />, path: '/student/reviews' },
     { name: 'Certificates', icon: <Award size={18} />, path: '/student/certificates' },
     { name: 'Messages', icon: <Mail size={18} />, path: '/student/messages' },

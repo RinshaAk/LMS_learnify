@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { Link } from 'react-router-dom';
-import { getInstructorExams, createExam, updateExam, uploadExamResource, getExamAttempts, gradeAttempt, approveAttempt, publishExam, unpublishExam, duplicateExam, deleteExam } from '../../services/examService';
+import { getInstructorExams, createExam, updateExam, uploadExamResource, getExamAttempts, gradeAttempt, approveAttempt, publishExam, unpublishExam, duplicateExam, deleteExam, getExamResourceUrl } from '../../services/examService';
 import { getInstructorCourses, getInstructorStudents } from '../../services/instructorService';
 
 const InstructorExams = () => {
@@ -53,7 +53,7 @@ const InstructorExams = () => {
   const [courseId, setCourseId] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [examType, setExamType] = useState('theory');
+  const [examType, setExamType] = useState('machine_task');
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
   const [duration, setDuration] = useState(60);
@@ -64,7 +64,7 @@ const InstructorExams = () => {
   const [uploadingResource, setUploadingResource] = useState(false);
   
   // New scheduling & task fields
-  const [taskType, setTaskType] = useState('exam');
+  const [taskType, setTaskType] = useState('task');
   const [instructions, setInstructions] = useState('');
   const [totalMarks, setTotalMarks] = useState(100);
   const [deadline, setDeadline] = useState('');
@@ -100,7 +100,8 @@ const InstructorExams = () => {
   const [gradeScore, setGradeScore] = useState('');
   const [gradeFeedback, setGradeFeedback] = useState('');
 
-  const courseStudents = (students || []).filter(s => s.courseId === courseId);
+  const getId = (value) => value?._id || value?.id || value;
+  const courseStudents = (students || []).filter(s => String(getId(s.courseId)) === String(courseId));
 
   const normalizeCourses = (data) => {
     if (Array.isArray(data)) return data;
@@ -137,7 +138,7 @@ const InstructorExams = () => {
     setCourseId('');
     setTitle('');
     setDescription('');
-    setExamType('theory');
+    setExamType('machine_task');
     setScheduledDate('');
     setScheduledTime('');
     setDuration(60);
@@ -148,7 +149,7 @@ const InstructorExams = () => {
     setQuestions([]);
     setAttachment('');
     setAttachments([]);
-    setTaskType('exam');
+    setTaskType('task');
     setInstructions('');
     setTotalMarks(100);
     setDeadline('');
@@ -183,9 +184,7 @@ const InstructorExams = () => {
     });
 
   const getAssessmentType = () => {
-    if (examType === 'machine_task') return 'coding';
-    if (taskType === 'task') return 'mission_task';
-    return questions.some((question) => question.type !== 'mcq') ? 'mixed' : 'theory';
+    return 'mission_task';
   };
 
   const clearQuestionForm = () => {
@@ -248,17 +247,34 @@ const InstructorExams = () => {
 
   const handleResourceUpload = async (file) => {
     if (!file) return;
+    if (!courseId) {
+      return toast.error('Please select a course before uploading a PDF.');
+    }
+
     setUploadingResource(true);
     try {
-      const result = await uploadExamResource(file);
-      setAttachment(result.url);
-      setAttachments((prev) => [...prev, result.url]);
+      const result = await uploadExamResource(file, courseId);
+      const resourceReference = result.key || result.url;
+      setAttachment(resourceReference);
+      setAttachments((prev) => [...prev, resourceReference]);
       toast.success('Resource uploaded successfully!');
     } catch (err) {
       console.error('Error uploading resource:', err);
       toast.error(err.response?.data?.message || 'Failed to upload resource.');
     } finally {
       setUploadingResource(false);
+    }
+  };
+
+  const handleOpenExamResource = async (examId, resourceKey) => {
+    if (!examId || !resourceKey) return;
+
+    try {
+      const result = await getExamResourceUrl(examId, resourceKey);
+      window.open(result.url, '_blank', 'noopener,noreferrer');
+    } catch (err) {
+      console.error('Error opening resource:', err);
+      toast.error(err.response?.data?.message || 'Failed to open resource.');
     }
   };
 
@@ -276,8 +292,8 @@ const InstructorExams = () => {
     setCourseId(exam.course?._id || exam.course || '');
     setTitle(exam.title || '');
     setDescription(exam.description || '');
-    setExamType(exam.examType || 'theory');
-    setTaskType(exam.taskType || 'exam');
+    setExamType('machine_task');
+    setTaskType('task');
     setInstructions(exam.instructions || '');
     setDuration(exam.duration || 60);
     setMaxAttempts(exam.maxAttempts || 3);
@@ -328,59 +344,41 @@ const InstructorExams = () => {
     e.preventDefault();
 
     if (!courseId) return toast.error('Please select a course.');
-    if (!title.trim()) return toast.error('Please enter a title.');
-    if (!description.trim()) return toast.error('Please enter a description.');
-    if (!instructions.trim()) return toast.error('Please enter instructions.');
-    if (taskType === 'exam' && (!scheduledDate || !scheduledTime)) return toast.error('Please select date and time.');
-    if (taskType === 'task' && !deadline) return toast.error('Please select a deadline.');
-    if (!Number.isFinite(Number(duration)) || Number(duration) <= 0) return toast.error('Duration must be greater than 0.');
-    if (Number(totalMarks) <= 0) return toast.error('Total marks must be greater than 0.');
-    if (Number(passingMarks) < 0 || Number(passingMarks) > Number(totalMarks)) return toast.error('Passing marks must be between 0 and total marks.');
-    if (topics.length === 0) return toast.error('Please add at least one topic.');
-    if (examType === 'machine_task' && requirements.length === 0) {
-      return toast.error('Please add at least one coding requirement.');
-    }
-    if (examType !== 'machine_task' && questions.length === 0) {
-      return toast.error('Please add at least one question.');
-    }
+    if (!title.trim()) return toast.error('Please enter a task title.');
+    if (!description.trim()) return toast.error('Please enter the mission task question.');
+    if (!deadline) return toast.error('Please select a deadline.');
+    if (new Date(deadline) <= new Date()) return toast.error('Deadline must be a future date and time.');
 
     setCreating(true);
     try {
-      let datetime = null;
-      if (taskType === 'exam' && scheduledDate && scheduledTime) {
-        datetime = new Date(`${scheduledDate}T${scheduledTime}`);
-      }
-
-      if (datetime && deadline && new Date(deadline) <= datetime) return toast.error('Deadline must be after the exam start time.');
-      
       const payload = {
-        type: getAssessmentType(),
+        type: 'mission_task',
         course: courseId,
         courseId,
-        title,
-        description,
-        examType,
-        scheduledDate: datetime ? datetime.toISOString() : undefined,
-        scheduledAt: datetime ? datetime.toISOString() : undefined,
-        deadline: deadline ? new Date(deadline).toISOString() : undefined,
-        duration: Number(duration),
-        maxAttempts: Number(maxAttempts),
-        passingMarks: Number(passingMarks),
-        totalMarks: Number(totalMarks),
-        topics,
-        requirements: examType === 'machine_task' ? requirements : [],
-        questions: examType === 'machine_task' ? [] : questions,
+        title: title.trim(),
+        description: description.trim(),
+        examType: 'machine_task',
+        scheduledDate: undefined,
+        scheduledAt: undefined,
+        deadline: new Date(deadline).toISOString(),
+        duration: undefined,
+        maxAttempts: 1,
+        passingMarks: 40,
+        totalMarks: 100,
+        topics: [],
+        requirements: [],
+        questions: [],
         attachment: attachment.trim() || undefined,
         attachments,
-        taskType,
-        instructions,
-        assignedBatch: assignedBatch.trim() || undefined,
-        assignedBatches: assignedBatch.trim() ? [assignedBatch.trim()] : [],
-        assignedStudents: assignedStudents,
-        difficulty,
-        expectedOutput,
-        starterCode,
-        testCases: parseTestCases(testCasesInput),
+        taskType: 'task',
+        instructions: description.trim(),
+        assignedBatch: undefined,
+        assignedBatches: [],
+        assignedStudents,
+        difficulty: 'medium',
+        expectedOutput: '',
+        starterCode: '',
+        testCases: [],
         isDraft: forcedDraft,
       };
 
@@ -389,7 +387,7 @@ const InstructorExams = () => {
       } else {
         await createExam(payload);
       }
-      toast.success(editingExamId ? 'Assessment updated successfully!' : forcedDraft ? 'Assessment saved as draft!' : 'Assessment published successfully!');
+      toast.success(editingExamId ? 'Mission task updated successfully!' : forcedDraft ? 'Mission task saved as draft!' : 'Mission task published successfully!');
       
       resetCreateForm();
       setShowCreateModal(false);
@@ -584,9 +582,9 @@ const InstructorExams = () => {
         <div>
           <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
             <GraduationCap size={28} className="text-primary-600" />
-            Exams & Tasks Management
+            Mission Tasks Management
           </h2>
-          <p className="text-slate-500 text-sm font-medium mt-1">Create assessments, theory quizzes, and grade coding tasks.</p>
+          <p className="text-slate-500 text-sm font-medium mt-1">Upload task questions, attach PDFs, and grade GitHub submissions.</p>
         </div>
         <button 
           type="button"
@@ -594,7 +592,7 @@ const InstructorExams = () => {
           className="btn-primary py-3 px-6 text-xs uppercase tracking-wider rounded-xl shadow-md shadow-primary-600/5"
         >
           <Plus size={16} />
-          Create Assessment
+          Create Mission Task
         </button>
       </div>
 
@@ -669,8 +667,8 @@ const InstructorExams = () => {
               onChange={(e) => setTypeFilter(e.target.value)}
               className="w-full md:w-44 px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-650 outline-none focus:bg-white focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all"
             >
-              <option value="all">All Assessment Types</option>
-              <option value="theory">Theory Exams</option>
+              <option value="all">All Task Types</option>
+              <option value="theory">Legacy Exams</option>
               <option value="machine_task">Machine Tasks</option>
             </select>
             <select
@@ -862,8 +860,8 @@ const InstructorExams = () => {
             
             <div className="p-6 md:p-8 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/30">
               <div>
-                <h3 className="text-lg font-extrabold text-slate-900 tracking-tight">{editingExamId ? 'Edit Assessment' : 'Create Assessment'}</h3>
-                <p className="text-slate-500 text-xs font-semibold mt-1">Configure theory quizzes or coding projects for your classes.</p>
+                <h3 className="text-lg font-extrabold text-slate-900 tracking-tight">{editingExamId ? 'Edit Mission Task' : 'Create Mission Task'}</h3>
+                <p className="text-slate-500 text-xs font-semibold mt-1">Add the question, optional PDF, and submission deadline.</p>
               </div>
               <button 
                 onClick={() => setShowCreateModal(false)} 
@@ -896,149 +894,69 @@ const InstructorExams = () => {
                 </select>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label htmlFor="exam-batch-input" className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-0.5">Batch Identifier</label>
-                  <input
-                    id="exam-batch-input"
-                    name="batch"
-                    type="text"
-                    placeholder="e.g. MERN Web Dev Batch C"
-                    value={assignedBatch}
-                    onChange={(e) => setAssignedBatch(e.target.value)}
-                    className="input-field"
-                  />
-                </div>
-                <div className="space-y-2 relative" onMouseLeave={() => setShowStudentsDropdown(false)}>
-                  <label htmlFor="exam-assign-students-btn" className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-0.5">Assign Candidates</label>
-                  <div className="relative">
-                    <button
-                      id="exam-assign-students-btn"
-                      name="assignStudentsBtn"
-                      type="button"
-                      onClick={() => setShowStudentsDropdown(!showStudentsDropdown)}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:ring-4 focus:ring-primary-500/10 focus:bg-white text-left flex justify-between items-center transition-all"
-                    >
-                      <span className="truncate">
-                        {assignedStudents.length === 0 ? "All Students (Default)" : `${assignedStudents.length} Student(s) Selected`}
-                      </span>
-                      <ChevronRight size={14} className={`transform transition-transform ${showStudentsDropdown ? 'rotate-90' : ''} shrink-0 ml-2`} />
-                    </button>
-                    
-                    {showStudentsDropdown && (
-                      <div className="absolute z-20 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto p-4 space-y-2">
-                        {courseStudents.length === 0 ? (
-                          <p className="text-xs text-slate-400 font-bold p-2 text-center">No enrolled students found.</p>
-                        ) : (
-                          <>
-                            <div 
-                              onClick={() => {
-                                if (assignedStudents.length === courseStudents.length) {
-                                  setAssignedStudents([]);
-                                } else {
-                                  setAssignedStudents(courseStudents.map(s => s.studentId));
-                                }
-                              }}
-                              className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors border-b border-slate-100 pb-2 mb-2"
-                            >
-                              <input 
-                                id="student-chk-all"
-                                name="selectAllStudents"
-                                type="checkbox"
-                                checked={assignedStudents.length === courseStudents.length && courseStudents.length > 0}
-                                readOnly
-                                className="rounded border-slate-350 text-primary-600 focus:ring-primary-500"
-                              />
-                              <label htmlFor="student-chk-all" className="text-[10px] font-black text-slate-700 uppercase tracking-widest cursor-pointer">Select All</label>
-                            </div>
-                            {courseStudents.map((student) => {
-                              const isChecked = assignedStudents.includes(student.studentId);
-                              return (
-                                <div
-                                  key={student.studentId}
-                                  onClick={() => {
-                                    if (isChecked) {
-                                      setAssignedStudents(assignedStudents.filter(id => id !== student.studentId));
-                                    } else {
-                                      setAssignedStudents([...assignedStudents, student.studentId]);
-                                    }
-                                  }}
-                                  className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors"
-                                >
-                                  <input
-                                    id={`student-chk-${student.studentId}`}
-                                    name={`student-${student.studentId}`}
-                                    type="checkbox"
-                                    checked={isChecked}
-                                    readOnly
-                                    className="rounded border-slate-300 text-primary-600 focus:ring-primary-550"
-                                  />
-                                  <label htmlFor={`student-chk-${student.studentId}`} className="flex flex-col cursor-pointer">
-                                    <span className="text-xs font-bold text-slate-800">{student.name}</span>
-                                    <span className="text-[9px] text-slate-400 font-bold uppercase">{student.email}</span>
-                                  </label>
-                                </div>
-                              );
-                            })}
-                          </>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Task Category Picker */}
               <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-0.5">Task Category</label>
-                <div className="grid grid-cols-2 gap-4">
-                  <div 
-                    onClick={() => setTaskType('exam')}
-                    className={`p-4 rounded-xl border cursor-pointer transition-all flex items-center gap-3.5 ${
-                      taskType === 'exam' 
-                        ? 'border-primary-500 bg-primary-50/10' 
-                        : 'border-slate-200 bg-slate-50/40 hover:bg-slate-50'
-                    }`}
-                  >
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                      taskType === 'exam' ? 'bg-primary-600 text-white' : 'bg-slate-200 text-slate-500'
-                    }`}>
-                      <Clock size={15} />
-                    </div>
-                    <div>
-                      <p className="text-xs font-extrabold text-slate-900">Standard Exam</p>
-                      <p className="text-[9px] text-slate-400 font-semibold mt-0.5">Real-time scheduled quiz</p>
-                    </div>
-                  </div>
-
-                  <div 
-                    onClick={() => setTaskType('task')}
-                    className={`p-4 rounded-xl border cursor-pointer transition-all flex items-center gap-3.5 ${
-                      taskType === 'task' 
-                        ? 'border-primary-500 bg-primary-50/10' 
-                        : 'border-slate-200 bg-slate-50/40 hover:bg-slate-50'
-                    }`}
-                  >
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                      taskType === 'task' ? 'bg-primary-600 text-white' : 'bg-slate-200 text-slate-500'
-                    }`}>
-                      <FileText size={15} />
-                    </div>
-                    <div>
-                      <p className="text-xs font-extrabold text-slate-900">Mission Task</p>
-                      <p className="text-[9px] text-slate-400 font-semibold mt-0.5">Deadline based project</p>
-                    </div>
-                  </div>
+                <div className="flex items-center justify-between gap-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-0.5">Select Students</label>
+                  {courseStudents.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setAssignedStudents([])}
+                      className={`text-[10px] font-black uppercase tracking-wider ${assignedStudents.length === 0 ? 'text-primary-600' : 'text-slate-400 hover:text-primary-600'}`}
+                    >
+                      All Students
+                    </button>
+                  )}
                 </div>
+
+                {courseStudents.length === 0 ? (
+                  <div className="px-4 py-3 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-xs font-bold text-slate-400">
+                    No students enrolled in this course
+                  </div>
+                ) : (
+                  <div className="grid sm:grid-cols-2 gap-2 max-h-44 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/60 p-2">
+                    {courseStudents.map((student) => {
+                      const studentId = String(student.studentId);
+                      const isSelected = assignedStudents.map(String).includes(studentId);
+                      return (
+                        <button
+                          key={studentId}
+                          type="button"
+                          onClick={() => {
+                            if (isSelected) {
+                              setAssignedStudents(assignedStudents.filter((id) => String(id) !== studentId));
+                            } else {
+                              setAssignedStudents([...assignedStudents, student.studentId]);
+                            }
+                          }}
+                          className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-left transition-all ${
+                            isSelected
+                              ? 'border-primary-500 bg-white text-primary-700 shadow-sm'
+                              : 'border-transparent bg-white/60 text-slate-600 hover:border-slate-200 hover:bg-white'
+                          }`}
+                        >
+                          <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
+                            isSelected ? 'bg-primary-600 border-primary-600 text-white' : 'border-slate-300 bg-white'
+                          }`}>
+                            {isSelected && <Check size={11} />}
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block text-xs font-extrabold truncate">{student.name || 'Student'}</span>
+                            <span className="block text-[9px] font-bold text-slate-400 truncate">{student.email}</span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Title & Description */}
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-0.5">Assessment Title</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-0.5">Mission Task Title</label>
                   <input 
                     type="text" 
-                    placeholder="e.g. React hooks project or Javascript basic quiz"
+                    placeholder="e.g. Build a todo API"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     className="input-field"
@@ -1047,408 +965,37 @@ const InstructorExams = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-0.5">Description</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-0.5">Mission Task Question</label>
                   <textarea 
-                    rows="3"
-                    placeholder="Enter assessment goals..."
+                    rows="6"
+                    placeholder="Enter the logical question students need to solve..."
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     className="input-field resize-none"
                   />
                 </div>
-                
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-0.5">Instructions</label>
-                  <textarea 
-                    rows="3"
-                    placeholder="Instructions for students taking this assessment..."
-                    value={instructions}
-                    onChange={(e) => setInstructions(e.target.value)}
-                    className="input-field resize-none"
-                  />
-                </div>
               </div>
 
-              {/* Assessment Type Picker */}
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-0.5">Assessment Type</label>
-                <div className="grid grid-cols-2 gap-4">
-                  <div 
-                    onClick={() => setExamType('theory')}
-                    className={`p-4 rounded-xl border cursor-pointer transition-all flex items-center gap-3.5 ${
-                      examType === 'theory' 
-                        ? 'border-primary-500 bg-primary-50/10' 
-                        : 'border-slate-200 bg-slate-50/40 hover:bg-slate-50'
-                    }`}
-                  >
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                      examType === 'theory' ? 'bg-primary-600 text-white' : 'bg-slate-200 text-slate-500'
-                    }`}>
-                      <FileText size={15} />
-                    </div>
-                    <div>
-                      <p className="text-xs font-extrabold text-slate-900">Theory Exam</p>
-                      <p className="text-[9px] text-slate-400 font-semibold mt-0.5">MCQ / Written concepts</p>
-                    </div>
-                  </div>
-
-                  <div 
-                    onClick={() => setExamType('machine_task')}
-                    className={`p-4 rounded-xl border cursor-pointer transition-all flex items-center gap-3.5 ${
-                      examType === 'machine_task' 
-                        ? 'border-purple-500 bg-purple-50/10' 
-                        : 'border-slate-200 bg-slate-50/40 hover:bg-slate-50'
-                    }`}
-                  >
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                      examType === 'machine_task' ? 'bg-purple-650 text-white' : 'bg-slate-200 text-slate-500'
-                    }`}>
-                      <GitBranch size={15} />
-                    </div>
-                    <div>
-                      <p className="text-xs font-extrabold text-slate-900">Machine Task</p>
-                      <p className="text-[9px] text-slate-400 font-semibold mt-0.5">Git repository submission</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Scheduled / Deadline */}
-              {taskType === 'exam' ? (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-0.5">Scheduled Date</label>
-                    <input 
-                      type="date" 
-                      value={scheduledDate}
-                      onChange={(e) => setScheduledDate(e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:ring-4 focus:ring-primary-500/10 transition-all"
-                      required
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-0.5">Scheduled Time</label>
-                    <input 
-                      type="time" 
-                      value={scheduledTime}
-                      onChange={(e) => setScheduledTime(e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:ring-4 focus:ring-primary-500/10 transition-all"
-                      required
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-0.5">Submission Deadline</label>
-                  <input 
-                    type="datetime-local" 
-                    value={deadline}
-                    onChange={(e) => setDeadline(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:ring-4 focus:ring-primary-500/10 transition-all"
-                    required
-                  />
-                </div>
-              )}
-
-              {/* Assessment Parameters */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {taskType === 'exam' && (
-                  <div className="space-y-2">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-0.5">Duration (min)</label>
-                    <input 
-                      type="number" 
-                      min="1"
-                      value={duration}
-                      onChange={(e) => setDuration(e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:ring-4 focus:ring-primary-500/10 transition-all"
-                      required
-                    />
-                  </div>
-                )}
-                
-                <div className="space-y-2">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-0.5">Max Attempts</label>
-                  <input 
-                    type="number" 
-                    min="1"
-                    value={maxAttempts}
-                    onChange={(e) => setMaxAttempts(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:ring-4 focus:ring-primary-500/10 transition-all"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-0.5">Passing Marks (%)</label>
-                  <input 
-                    type="number" 
-                    min="1"
-                    max="100"
-                    value={passingMarks}
-                    onChange={(e) => setPassingMarks(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:ring-4 focus:ring-primary-500/10 transition-all"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-0.5">Total Marks</label>
-                  <input 
-                    type="number" 
-                    min="1"
-                    value={totalMarks}
-                    onChange={(e) => setTotalMarks(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:ring-4 focus:ring-primary-500/10 transition-all"
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Topics */}
+              {/* Submission Deadline */}
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-0.5">Topics Cover (Enter to add)</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-0.5">Submission Deadline</label>
                 <input 
-                  type="text" 
-                  placeholder="e.g. Hooks, Context API, Redux"
-                  value={topicInput}
-                  onChange={(e) => setTopicInput(e.target.value)}
-                  onKeyDown={handleAddTopic}
-                  className="input-field"
+                  type="datetime-local" 
+                  value={deadline}
+                  onChange={(e) => setDeadline(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:ring-4 focus:ring-primary-500/10 transition-all"
+                  required
                 />
-                {topics.length > 0 && (
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    {topics.map((topic, i) => (
-                      <span key={i} className="px-2.5 py-1.5 bg-primary-50 text-primary-650 text-[10px] font-bold rounded-lg border border-primary-100/30 uppercase tracking-wider flex items-center gap-1.5">
-                        {topic}
-                        <button type="button" onClick={() => handleRemoveTopic(i)} className="hover:text-primary-850">
-                          <X size={11} />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
               </div>
-
-              {/* Requirements (For machine task) */}
-              {examType === 'machine_task' && (
-                <div className="space-y-2 border-t border-slate-100 pt-5">
-                  <label className="text-[10px] font-black text-purple-600 uppercase tracking-widest px-0.5">Coding Guidelines (Enter to add)</label>
-                  <input 
-                    type="text" 
-                    placeholder="e.g. Write clean functions, Include README details"
-                    value={reqInput}
-                    onChange={(e) => setReqInput(e.target.value)}
-                    onKeyDown={handleAddRequirement}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:ring-4 focus:ring-purple-500/10 focus:bg-white focus:border-purple-500 transition-all"
-                  />
-                  {requirements.length > 0 && (
-                    <div className="space-y-2 pt-1">
-                      {requirements.map((req, i) => (
-                        <div key={i} className="p-3 bg-purple-50/50 text-purple-700 text-xs font-semibold rounded-xl border border-purple-100/40 flex items-center justify-between">
-                          <span>{req}</span>
-                          <button type="button" onClick={() => handleRemoveRequirement(i)} className="text-purple-400 hover:text-purple-650">
-                            <X size={13} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Machine Task details */}
-              {examType === 'machine_task' && (
-                <div className="space-y-4 border-t border-slate-100 pt-5">
-                  <h4 className="text-[10px] font-black text-purple-600 uppercase tracking-widest px-0.5">Guidelines Details</h4>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-0.5">Difficulty</label>
-                      <select
-                        value={difficulty}
-                        onChange={(e) => setDifficulty(e.target.value)}
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:ring-4 focus:ring-purple-500/10 focus:bg-white transition-all"
-                      >
-                        <option value="easy">Easy</option>
-                        <option value="medium">Medium</option>
-                        <option value="hard">Hard</option>
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-0.5">Expected Output</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Deployed project URL"
-                        value={expectedOutput}
-                        onChange={(e) => setExpectedOutput(e.target.value)}
-                        className="input-field"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-0.5">Starter Instructions</label>
-                    <textarea
-                      rows="3"
-                      placeholder="Optional starter code templates or layout comments..."
-                      value={starterCode}
-                      onChange={(e) => setStarterCode(e.target.value)}
-                      className="input-field resize-none"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-0.5">Test Cases</label>
-                    <textarea
-                      rows="3"
-                      placeholder="input => expected output (one per line)"
-                      value={testCasesInput}
-                      onChange={(e) => setTestCasesInput(e.target.value)}
-                      className="input-field resize-none"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Theory Questions */}
-              {examType === 'theory' && (
-                <div className="space-y-6 border-t border-slate-100 pt-5">
-                  <h4 className="text-[10px] font-black text-primary-600 uppercase tracking-widest px-0.5">Assessment Questions ({questions.length} Added)</h4>
-                  
-                  <div className="bg-slate-50/50 p-5 rounded-2xl border border-slate-200/60 space-y-4">
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-0.5">Question Type</label>
-                        <select
-                          value={currentQuestionType}
-                          onChange={(e) => setCurrentQuestionType(e.target.value)}
-                          className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:ring-4 focus:ring-primary-500/10"
-                        >
-                          <option value="mcq">MCQ</option>
-                          <option value="text">Text Answer</option>
-                          <option value="file_upload">File Upload Task</option>
-                        </select>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-0.5">Marks</label>
-                        <input
-                          type="number"
-                          min="1"
-                          value={currentMarks}
-                          onChange={(e) => setCurrentMarks(e.target.value)}
-                          className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:ring-4 focus:ring-primary-500/10"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-0.5">Question Text</label>
-                      <input 
-                        type="text"
-                        placeholder="Enter the question text..."
-                        value={currentQuestion}
-                        onChange={(e) => setCurrentQuestion(e.target.value)}
-                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:ring-4 focus:ring-primary-500/10"
-                      />
-                    </div>
-
-                    {currentQuestionType === 'mcq' && (
-                      <div className="grid grid-cols-2 gap-4">
-                        {currentOptions.map((opt, optIdx) => (
-                          <div key={optIdx} className="space-y-1.5">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-0.5 flex justify-between items-center">
-                              <span>Option {optIdx + 1}</span>
-                              <span className="flex items-center gap-1">
-                                <input 
-                                  type="radio" 
-                                  name="correctOption" 
-                                  checked={currentCorrect === optIdx}
-                                  onChange={() => setCurrentCorrect(optIdx)}
-                                  className="text-primary-600 focus:ring-primary-500" 
-                                />
-                                <span className="text-[9px] text-slate-400 font-bold uppercase">Correct</span>
-                              </span>
-                            </label>
-                            <input 
-                              type="text"
-                              placeholder={`Option ${optIdx + 1}`}
-                              value={opt}
-                              onChange={(e) => {
-                                const newOpts = [...currentOptions];
-                                newOpts[optIdx] = e.target.value;
-                                setCurrentOptions(newOpts);
-                              }}
-                              className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:ring-4 focus:ring-primary-500/10"
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    <button 
-                      type="button"
-                      onClick={handleAddOrUpdateQuestion}
-                      className="w-full py-2.5 bg-primary-50 text-primary-650 hover:bg-primary-100 rounded-xl font-bold text-xs uppercase tracking-wider transition-all border border-primary-100 flex items-center justify-center gap-1.5"
-                    >
-                      <Plus size={14} />
-                      {editingQuestionIndex !== null ? 'Update Question' : 'Add Question'}
-                    </button>
-                  </div>
-
-                  {/* Questions List */}
-                  {questions.length > 0 && (
-                    <div className="space-y-3">
-                      {questions.map((q, idx) => (
-                        <div key={idx} className="p-4 bg-white border border-slate-200 rounded-xl flex justify-between items-start gap-4 shadow-sm">
-                          <div className="space-y-1.5 flex-1">
-                            <p className="text-xs font-bold text-slate-800">Q{idx + 1}: {q.q}</p>
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{q.type || 'mcq'} • {q.marks || 1} marks</p>
-                            {q.options?.length > 0 && (
-                              <div className="grid grid-cols-2 gap-2 pl-4 pt-1">
-                                {q.options.map((opt, oIdx) => (
-                                  <p key={oIdx} className={`text-[10px] font-semibold ${q.correct === oIdx ? 'text-green-600 font-extrabold' : 'text-slate-400'}`}>
-                                    {oIdx + 1}. {opt} {q.correct === oIdx && '✓'}
-                                  </p>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex gap-1 shrink-0">
-                            <button 
-                              type="button" 
-                              onClick={() => handleEditQuestion(q, idx)}
-                              className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                            >
-                              <FileText size={14} />
-                            </button>
-                            <button 
-                              type="button" 
-                              onClick={() => setQuestions(questions.filter((_, qIdx) => qIdx !== idx))}
-                              className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
               {/* Reference Attachment */}
               <div className="space-y-2 border-t border-slate-100 pt-5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-0.5">Attachments / reference pdf</label>
-                <input 
-                  type="url" 
-                  placeholder="https://..."
-                  value={attachment}
-                  onChange={(e) => setAttachment(e.target.value)}
-                  className="input-field"
-                />
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-0.5">Reference PDF</label>
                 <label className="w-full py-3 bg-primary-50 text-primary-650 border border-primary-100 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer hover:bg-primary-100 transition-all shadow-sm shadow-primary-600/5">
                   {uploadingResource ? <Loader2 className="w-4 h-4 animate-spin" /> : <LinkIcon size={14} />}
-                  {uploadingResource ? 'Uploading File...' : 'Upload Reference PDF'}
+                  {uploadingResource ? 'Uploading PDF...' : attachment ? 'Replace Reference PDF' : 'Upload Reference PDF'}
                   <input
                     type="file"
+                    accept="application/pdf,.pdf"
                     className="hidden"
                     onChange={(e) => handleResourceUpload(e.target.files?.[0])}
                     disabled={uploadingResource}
@@ -1458,12 +1005,26 @@ const InstructorExams = () => {
                   <div className="space-y-2 pt-2">
                     {attachments.map((url, index) => (
                       <div key={url} className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex items-center justify-between gap-3">
-                        <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-primary-600 truncate max-w-[400px]">
-                          Reference_{index + 1}.pdf
-                        </a>
                         <button
                           type="button"
-                          onClick={() => setAttachments(attachments.filter((item) => item !== url))}
+                          onClick={() => {
+                            if (/^https?:\/\//i.test(url)) {
+                              window.open(url, '_blank', 'noopener,noreferrer');
+                            } else if (editingExamId) {
+                              handleOpenExamResource(editingExamId, url);
+                            }
+                          }}
+                          disabled={!editingExamId && !/^https?:\/\//i.test(url)}
+                          className="text-xs font-bold text-primary-600 truncate max-w-[400px] disabled:text-slate-400 disabled:cursor-default text-left"
+                        >
+                          Reference_{index + 1}.pdf
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAttachments(attachments.filter((item) => item !== url));
+                            if (attachment === url) setAttachment('');
+                          }}
                           className="text-red-400 hover:text-red-650"
                         >
                           <X size={14} />
@@ -1484,7 +1045,7 @@ const InstructorExams = () => {
                   className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
                 />
                 <label htmlFor="isDraft" className="text-xs font-semibold text-slate-600 cursor-pointer">
-                  Save as Draft (Students will not see this assessment until published)
+                  Save as Draft (Students will not see this mission task until published)
                 </label>
               </div>
 

@@ -24,6 +24,9 @@ const AdminCourseApproval = () => {
   const [selectedStatus, setSelectedStatus] = useState('pending');
   const [previewCourse, setPreviewCourse] = useState(null);
   const [previewLesson, setPreviewLesson] = useState(null);
+  const [previewVideoUrl, setPreviewVideoUrl] = useState('');
+  const [previewVideoLoading, setPreviewVideoLoading] = useState(false);
+  const [previewVideoError, setPreviewVideoError] = useState('');
 
   useEffect(() => {
     fetchCourses();
@@ -98,7 +101,52 @@ const AdminCourseApproval = () => {
   const closeCoursePreview = () => {
     setPreviewCourse(null);
     setPreviewLesson(null);
+    setPreviewVideoUrl('');
+    setPreviewVideoError('');
+    setPreviewVideoLoading(false);
   };
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadPreviewVideo = async () => {
+      setPreviewVideoUrl('');
+      setPreviewVideoError('');
+
+      if (!previewLesson?.videoUrl) {
+        return;
+      }
+
+      try {
+        setPreviewVideoLoading(true);
+        const data = await adminService.getVideoPlaybackUrl({
+          videoUrl: previewLesson.videoUrl,
+          courseId: previewCourse?._id,
+          lessonId: previewLesson._id,
+        });
+
+        if (isActive) {
+          setPreviewVideoUrl(data.url || previewLesson.videoUrl);
+        }
+      } catch (err) {
+        console.error('Error loading preview video:', err);
+
+        if (isActive) {
+          setPreviewVideoError(err.response?.data?.message || 'Video preview could not be loaded.');
+        }
+      } finally {
+        if (isActive) {
+          setPreviewVideoLoading(false);
+        }
+      }
+    };
+
+    loadPreviewVideo();
+
+    return () => {
+      isActive = false;
+    };
+  }, [previewCourse?._id, previewLesson]);
 
   if (loading) {
     return (
@@ -287,10 +335,20 @@ const AdminCourseApproval = () => {
             <div className="flex-1 overflow-y-auto grid lg:grid-cols-[1fr_360px] bg-slate-50">
               <div className="p-5 space-y-4 min-w-0">
                 <div className="aspect-video bg-black rounded-xl overflow-hidden border border-slate-200 shadow-sm flex items-center justify-center">
-                  {previewLesson?.videoUrl ? (
+                  {previewVideoLoading ? (
+                    <div className="text-center p-8">
+                      <Loader2 className="w-12 h-12 text-blue-500 mx-auto mb-3 animate-spin" />
+                      <p className="text-slate-300 font-bold">Loading video preview...</p>
+                    </div>
+                  ) : previewVideoError ? (
+                    <div className="text-center p-8">
+                      <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
+                      <p className="text-slate-300 font-bold">{previewVideoError}</p>
+                    </div>
+                  ) : previewVideoUrl ? (
                     <video
                       key={previewLesson._id}
-                      src={previewLesson.videoUrl}
+                      src={previewVideoUrl}
                       controls
                       className="w-full h-full object-contain bg-black"
                     >

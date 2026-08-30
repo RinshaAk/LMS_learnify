@@ -1,4 +1,4 @@
-import { asyncHandler } from "../middleware/trycatchmiddleware.js";
+﻿import { asyncHandler } from "../middleware/trycatchmiddleware.js";
 
 import {
   createCourseService,
@@ -15,7 +15,7 @@ import {
 } from "../services/courseServices.js";
 
 
-// ✅ Create Course
+// âœ… Create Course
 export const createCourse = async (req, res) => {
 
   const course = await createCourseService({
@@ -30,19 +30,20 @@ export const createCourse = async (req, res) => {
 };
 
 
-// ✅ Get all courses
+// âœ… Get all courses
 export const getCourses = async (req, res) => {
 
-  const courses = await getCoursesService(req.query);
+  const result = await getCoursesService(req.query);
 
   res.status(200).json({
     success: true,
-    courses,
+    courses: result.courses,
+    pagination: result.pagination,
   });
 };
 
 
-// ✅ Get single course
+// âœ… Get single course
 export const getLandingCourses = async (req, res) => {
   const courses = await getLandingCoursesService(req.query.limit);
 
@@ -80,13 +81,14 @@ export const getCourseById = async (req, res) => {
 };
 
 
-// ✅ Update Course
+// âœ… Update Course
 export const getCourseReviews = async (req, res) => {
-  const reviews = await getCourseReviewsService(req.params.id);
+  const result = await getCourseReviewsService(req.params.id, req.query);
 
   res.status(200).json({
     success: true,
-    reviews,
+    reviews: result.reviews,
+    pagination: result.pagination,
   });
 };
 
@@ -132,7 +134,7 @@ export const updateCourse = async (req, res) => {
 };
 
 
-// ✅ Delete Course
+// âœ… Delete Course
 export const deleteCourse = async (req, res) => {
 
   await deleteCourseService(req.params.id, req.user.id);
@@ -142,3 +144,4 @@ export const deleteCourse = async (req, res) => {
     message: "Course deleted successfully",
   });
 };
+

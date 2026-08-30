@@ -19,7 +19,7 @@ import {
   ExternalLink,
   X
 } from 'lucide-react';
-import { getStudentExams, getExamHistory, submitExamAttempt, requestExtraAttempt, checkExamEligibility } from '../../services/examService';
+import { getStudentExams, getExamHistory, submitExamAttempt, requestExtraAttempt, checkExamEligibility, getExamResourceUrl } from '../../services/examService';
 import { toast } from 'react-hot-toast';
 
 // Simple countdown timer for scheduled exams
@@ -106,6 +106,16 @@ const Exams = () => {
       setExamHistory(prev => ({ ...prev, [examId]: history }));
     } catch (err) {
       console.error("Error fetching exam history:", err);
+    }
+  };
+
+  const handleOpenExamResource = async (exam) => {
+    try {
+      const result = await getExamResourceUrl(exam._id, exam.attachment);
+      window.open(result.url, '_blank', 'noopener,noreferrer');
+    } catch (err) {
+      console.error("Error opening assessment resource:", err);
+      toast.error(err.response?.data?.message || "Failed to open reference material.");
     }
   };
 
@@ -292,6 +302,12 @@ const Exams = () => {
     );
   }
 
+  const activeExams = exams.filter((exam) => {
+    const isMachineOrMissionTask = exam.examType === 'machine_task' || exam.taskType === 'task';
+    const hasFinalTaskResult = isMachineOrMissionTask && ['pass', 'fail'].includes(exam.latestResult);
+    return !hasFinalTaskResult;
+  });
+
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       <div>
@@ -300,7 +316,7 @@ const Exams = () => {
       </div>
 
       <div className="grid gap-8">
-        {exams.length === 0 ? (
+        {activeExams.length === 0 ? (
           <div className="py-20 text-center bg-white rounded-2xl border border-dashed border-slate-200 space-y-4">
             <FileText size={40} className="mx-auto text-slate-200 animate-pulse" />
             <div>
@@ -309,11 +325,22 @@ const Exams = () => {
             </div>
           </div>
         ) : (
-          exams.map((exam) => {
+          activeExams.map((exam) => {
             const isFailed = exam.latestResult === 'fail' && exam.attemptCount >= exam.maxAttempts;
             const isPassed = exam.latestResult === 'pass';
             const isPendingEvaluation = exam.latestResult === 'pending';
             const isMachineOrMissionTask = exam.examType === 'machine_task' || exam.taskType === 'task';
+            const now = new Date();
+            const startsAt = exam.scheduledDate ? new Date(exam.scheduledDate) : null;
+            const closesAt = exam.deadline
+              ? new Date(exam.deadline)
+              : startsAt && exam.duration
+                ? new Date(startsAt.getTime() + Number(exam.duration) * 60 * 1000)
+                : null;
+            const isNotStarted = exam.taskType === 'exam' && startsAt && now < startsAt;
+            const isAssessmentClosed = closesAt
+              ? now > closesAt
+              : ['completed', 'expired'].includes(exam.status);
             
             return (
               <div 
@@ -411,7 +438,12 @@ const Exams = () => {
                       )}
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-50 text-xs font-bold text-slate-500">
-                        {exam.scheduledDate ? (
+                        {exam.taskType === 'task' && exam.deadline ? (
+                          <div className="flex items-center gap-2 text-red-500">
+                            <Calendar size={15} />
+                            <span>Deadline: {new Date(exam.deadline).toLocaleDateString()} at {new Date(exam.deadline).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          </div>
+                        ) : exam.scheduledDate ? (
                           <div className="flex items-center gap-2">
                             <Calendar size={15} className="text-slate-400" />
                             <span>Start: {new Date(exam.scheduledDate).toLocaleDateString()} at {new Date(exam.scheduledDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
@@ -437,21 +469,20 @@ const Exams = () => {
 
                     <div className="pt-6 space-y-4">
                       {exam.attachment && (
-                        <a 
-                          href={exam.attachment}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <button
+                          type="button"
+                          onClick={() => handleOpenExamResource(exam)}
                           className="p-4 bg-primary-50/40 rounded-xl border border-primary-100/50 flex items-center justify-between text-xs font-bold text-primary-650 hover:bg-primary-50 transition-colors"
                         >
                           <span className="flex items-center gap-2"><LinkIcon size={14} /> Reference Material.pdf</span>
                           <ExternalLink size={12} />
-                        </a>
+                        </button>
                       )}
 
                       {/* CTA Action buttons */}
                       {exam.attemptCount < exam.maxAttempts && !isPassed && !isPendingEvaluation && (
                         <>
-                          {exam.status === 'scheduled' && exam.taskType === 'exam' ? (
+                          {isNotStarted ? (
                             <div className="flex flex-col gap-2.5 w-full">
                               <button 
                                 disabled
@@ -463,7 +494,7 @@ const Exams = () => {
                                 <ExamCountdown targetDate={exam.scheduledDate} onComplete={() => fetchExams()} />
                               </div>
                             </div>
-                          ) : exam.status === 'completed' ? (
+                          ) : isAssessmentClosed ? (
                             <div className="p-3.5 bg-red-50 text-red-650 rounded-xl border border-red-100 text-xs font-black text-center uppercase tracking-wider w-full">
                               Assessment Window Closed
                             </div>

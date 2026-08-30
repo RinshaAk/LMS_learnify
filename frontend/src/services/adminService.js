@@ -60,6 +60,15 @@ export const updateCourseStatus = async (id, status) => {
   return response.data;
 };
 
+export const getVideoPlaybackUrl = async ({ videoUrl, courseId, lessonId }) => {
+  const response = await axiosInstance.post('/uploads/video/playback-url', {
+    videoUrl,
+    courseId,
+    lessonId,
+  });
+  return response.data;
+};
+
 export const getActivityFeed = async () => {
   const response = await axiosInstance.get('/admin/activity-feed');
   return response.data;
@@ -125,6 +134,7 @@ export default {
   getEarnings,
   getAllCourses,
   updateCourseStatus,
+  getVideoPlaybackUrl,
   getActivityFeed,
   getReportsData,
   getAdminStats,

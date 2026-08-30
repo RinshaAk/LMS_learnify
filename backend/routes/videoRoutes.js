@@ -1,50 +1,69 @@
-import express from "express";
-import multer from "multer";
-import { v2 as cloudinary } from "cloudinary";
+﻿import express from "express";
+import Course from "../models/Course.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
+import roleMiddleware from "../middleware/roleMiddleware.js";
+import { createPresignedVideoUpload } from "../utils/s3Uploads.js";
 import { saveVideoProgress, getVideoProgress } from "../controllers/videoController.js";
 
 const router = express.Router();
 
-// Multer Config
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
+const canUploadToCourse = async ({ courseId, user }) => {
+  const course = await Course.findById(courseId).select("instructor");
 
-// Cloudinary Config (Assume keys are in env or configured elsewhere)
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+  if (!course) {
+    const error = new Error("Course not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const isAdmin = user.role === "admin";
+  const isOwner = course.instructor?.toString() === user.id?.toString();
+
+  if (!isAdmin && !isOwner) {
+    const error = new Error("Not authorized to upload video for this course");
+    error.statusCode = 403;
+    throw error;
+  }
+};
 
 router.post(
-  "/upload-video",
-  upload.single("video"),
-  async (req, res) => {
+  "/presigned-upload",
+  authMiddleware,
+  roleMiddleware("instructor", "admin"),
+  async (req, res, next) => {
     try {
-      if (!req.file) {
-        return res.status(400).json({ message: "No video file provided" });
+      const { courseId, fileName, contentType, fileSize } = req.body;
+
+      if (!courseId) {
+        return res.status(400).json({ message: "courseId is required" });
       }
 
-      const result = await cloudinary.uploader.upload(
-        `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`,
-        {
-          resource_type: "video",
-          folder: "learnify-videos",
-        }
-      );
+      await canUploadToCourse({ courseId, user: req.user });
+
+      const upload = await createPresignedVideoUpload({
+        courseId,
+        userId: req.user.id,
+        fileName,
+        contentType,
+        fileSize,
+      });
 
       res.status(200).json({
         success: true,
-        videoUrl: result.secure_url,
+        ...upload,
       });
     } catch (error) {
-      res.status(500).json({
-        message: error.message,
-      });
+      next(error);
     }
   }
 );
+
+router.post("/upload-video", authMiddleware, roleMiddleware("instructor", "admin"), (req, res) => {
+  res.status(410).json({
+    success: false,
+    message: "Direct backend video uploads are disabled. Use the presigned S3 upload endpoint.",
+  });
+});
 
 // Progress tracking routes
 router.post("/save-progress", authMiddleware, saveVideoProgress);

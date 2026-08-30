@@ -5,13 +5,17 @@ import {
   updateUserProfileService,
   getInstructorsByStudentService,
   getMyEnrolledLiveSessionsService,
-  getMyEnrolledReviewsService
+  getMyEnrolledReviewsService,
+  getStudentExamResultsService
 } from "../services/userServices.js";
 import StudentReview from "../models/StudentReview.js";
 
 export const getStudentDashboard = async (req, res) => {
   try {
-    const enrollments = await getEnrolledCoursesService(req.user.id);
+    const [enrollments, examResults] = await Promise.all([
+      getEnrolledCoursesService(req.user.id),
+      getStudentExamResultsService(req.user.id),
+    ]);
     const completedCourses = enrollments.filter(item => item.completed === true);
     const pendingCourses = enrollments.filter(item => item.completed !== true);
 
@@ -21,6 +25,7 @@ export const getStudentDashboard = async (req, res) => {
       completedCourses: completedCourses.length,
       pendingCourses: pendingCourses.length,
       enrolledCourses: enrollments,
+      examResults,
       totalCourses: enrollments.length,
     });
   } catch (error) {

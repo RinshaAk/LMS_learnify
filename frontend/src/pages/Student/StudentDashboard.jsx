@@ -11,7 +11,9 @@ import {
   Loader2,
   Lock,
   Download,
-  BookOpen
+  BookOpen,
+  ClipboardCheck,
+  XCircle
 } from "lucide-react";
 import { getCertificateDownloadUrl } from "../../services/certificateService";
 
@@ -70,6 +72,23 @@ const StudentDashboard = () => {
       bg: "bg-blue-50/60 border-blue-100/50",
     },
   ];
+  const examResults = dashboardData?.examResults || [];
+  const getResultBadge = (result) => {
+    if (result === "pass") return "bg-emerald-50 text-emerald-700 border-emerald-100";
+    if (result === "fail") return "bg-red-50 text-red-650 border-red-100";
+    return "bg-amber-50 text-amber-700 border-amber-100";
+  };
+  const getResultText = (item) => {
+    if (item.result === "pass") return "Pass";
+    if (item.result === "fail") return "Failed";
+    if (item.result === "pending") return "Pending";
+    return item.status || "Completed";
+  };
+  const getResultIcon = (result) => {
+    if (result === "pass") return <CheckCircle2 size={14} />;
+    if (result === "fail") return <XCircle size={14} />;
+    return <Clock size={14} />;
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
@@ -184,7 +203,7 @@ const StudentDashboard = () => {
                               <Award size={12} />
                               View Certificate
                             </button>
-                            {item.certificateId && (
+                            {item.certificateId && ['approved', 'issued'].includes(item.certificateStatus) && (
                               <button
                                 onClick={() => {
                                   window.open(getCertificateDownloadUrl(item.certificateId), "_blank");
@@ -227,6 +246,54 @@ const StudentDashboard = () => {
 
         {/* Sidebar Info */}
         <div className="space-y-6">
+          <div id="exam-results" className="bg-white border border-slate-200/60 rounded-2xl p-6 space-y-5 shadow-sm scroll-mt-6">
+            <div className="flex items-center justify-between">
+              <h3 className="font-extrabold text-slate-900 flex items-center gap-2 text-sm tracking-tight">
+                <ClipboardCheck size={16} className="text-primary-600" />
+                Exam Result
+              </h3>
+              <button
+                onClick={() => navigate('/student/exams')}
+                className="text-[10px] font-black uppercase tracking-wider text-primary-600 hover:text-primary-700"
+              >
+                View All
+              </button>
+            </div>
+
+            {examResults.length > 0 ? (
+              <div className="space-y-3">
+                {examResults.slice(0, 5).map((item) => (
+                  <div key={`${item.kind}-${item._id}`} className="p-3.5 bg-slate-50/50 border border-slate-150 rounded-xl space-y-2">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{item.label}</p>
+                        <h4 className="text-xs font-extrabold text-slate-900 truncate mt-0.5">{item.title}</h4>
+                        <p className="text-[10px] text-slate-500 font-semibold truncate mt-0.5">{item.courseTitle}</p>
+                      </div>
+                      <span className={`shrink-0 px-2 py-1 rounded-lg border text-[9px] font-black uppercase tracking-wider flex items-center gap-1 ${getResultBadge(item.result)}`}>
+                        {getResultIcon(item.result)}
+                        {getResultText(item)}
+                      </span>
+                    </div>
+                    {item.result !== "pending" && item.score !== undefined && item.score !== null && (
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                        Score: {item.score}/{item.totalMarks || 100}
+                      </p>
+                    )}
+                    {item.feedback && (
+                      <p className="text-[11px] text-slate-500 font-medium line-clamp-2">{item.feedback}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-8 text-center bg-slate-50/50 border border-dashed border-slate-200 rounded-xl">
+                <ClipboardCheck size={28} className="mx-auto text-slate-250" />
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-3">No results yet</p>
+              </div>
+            )}
+          </div>
+
           <div className="bg-slate-950 rounded-2xl p-6 text-white space-y-6 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 w-48 h-48 bg-primary-600/10 rounded-full filter blur-2xl -mr-24 -mt-24"></div>
             <div className="flex items-center gap-3 relative z-10">

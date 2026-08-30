@@ -63,6 +63,7 @@ const StudentCourses = () => {
       status: enrollment.status || 'Active',
       completionStatus: enrollment.completionStatus,
       certificateId: enrollment.certificateId,
+      certificateStatus: enrollment.certificateStatus,
     });
 
     return acc;
@@ -233,7 +234,7 @@ const StudentCourses = () => {
                             <Award size={12} />
                             Certificate
                           </button>
-                          {course.certificateId && (
+                          {course.certificateId && ['approved', 'issued'].includes(course.certificateStatus) && (
                             <button
                               onClick={() => {
                                 window.open(getCertificateDownloadUrl(course.certificateId), '_blank');

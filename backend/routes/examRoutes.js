@@ -12,7 +12,8 @@ import {
   publishExam,
   unpublishExam,
   duplicateExam,
-  approveExamAttempt
+  approveExamAttempt,
+  getExamResourceUrl
 } from "../controllers/examController.js";
 import { 
   checkEligibility, 
@@ -31,6 +32,7 @@ router.post("/", authMiddleware, roleMiddleware("instructor"), createExam);
 router.get("/student", authMiddleware, roleMiddleware("student"), getStudentExams);
 router.get("/instructor", authMiddleware, roleMiddleware("instructor"), getInstructorExams);
 router.post("/status/update", authMiddleware, updateExamStatuses);
+router.get("/:id/resource-url", authMiddleware, roleMiddleware("student", "instructor"), getExamResourceUrl);
 router.get("/:id", authMiddleware, getSingleExam);
 router.put("/:id", authMiddleware, roleMiddleware("instructor"), updateExam);
 router.delete("/:id", authMiddleware, roleMiddleware("instructor"), deleteExam);

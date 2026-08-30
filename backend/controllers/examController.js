@@ -8,6 +8,7 @@ import {
   deleteExamService,
   updateExamStatusesService,
   getSingleExamService,
+  getExamResourceUrlService,
   publishExamService,
   unpublishExamService,
   duplicateExamService,
@@ -42,6 +43,19 @@ export const getSingleExam = async (req, res, next) => {
   try {
     const exam = await getSingleExamService(req.params.id, req.user);
     res.json(exam);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getExamResourceUrl = async (req, res, next) => {
+  try {
+    const result = await getExamResourceUrlService(
+      req.params.id,
+      req.user,
+      req.query.key
+    );
+    res.json(result);
   } catch (error) {
     next(error);
   }

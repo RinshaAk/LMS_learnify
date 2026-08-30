@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+﻿import mongoose from "mongoose";
 
 const paymentSchema = new mongoose.Schema(
   {
@@ -57,6 +57,12 @@ const paymentSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+paymentSchema.index({ status: 1, createdAt: -1 });
+paymentSchema.index({ user: 1, createdAt: -1 });
+paymentSchema.index({ course: 1, createdAt: -1 });
+paymentSchema.index({ razorpay_order_id: 1 }, { sparse: true });
+paymentSchema.index({ razorpay_payment_id: 1 }, { sparse: true });
 
 const Payment = mongoose.model("Payment", paymentSchema);
 

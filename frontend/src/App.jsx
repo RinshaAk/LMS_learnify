@@ -25,6 +25,7 @@ const BuyCourses = lazy(() => import("./pages/Student/BuyCourses"));
 const LiveClasses = lazy(() => import("./pages/Student/LiveClasses"));
 const StudentMessage = lazy(() => import("./pages/Student/StudentMessage"));
 const Exams = lazy(() => import("./pages/Student/Exams"));
+const StudentExamResults = lazy(() => import("./pages/Student/StudentExamResults"));
 const StudentReviews = lazy(() => import("./pages/Student/StudentReviews"));
 const Certificates = lazy(() => import("./pages/Student/Certificates"));
 const StudentProfile = lazy(() => import("./pages/Student/StudentProfile"));
@@ -110,6 +111,7 @@ function App() {
             <Route path="live-chat/:id" element={<LiveRoom />} />
             <Route path="messages" element={<StudentMessage />} />
             <Route path="exams" element={<Exams />} />
+            <Route path="exam-results" element={<StudentExamResults />} />
             <Route path="reviews" element={<StudentReviews />} />
             <Route path="certificates" element={<Certificates />} />
             <Route path="profile" element={<StudentProfile />} />

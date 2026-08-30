@@ -34,7 +34,7 @@ const examSchema = new mongoose.Schema(
     scheduledAt: Date,
     duration: Number, // in minutes
     topics: [String],
-    attachment: String, // Resource URL used by existing UI
+    attachment: String, // S3 PDF key for new uploads; legacy records may contain a URL.
     attachments: [String],
     maxAttempts: {
       type: Number,

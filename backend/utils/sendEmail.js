@@ -46,7 +46,8 @@ export const sendEmail = async (
   to,
   subject,
   html,
-  text
+  text,
+  options = {}
 ) => {
   try {
     const emailUser = process.env.EMAIL_USER?.trim();
@@ -68,6 +69,7 @@ export const sendEmail = async (
       subject,
       html,
       ...(text ? { text } : {}),
+      ...(options.replyTo ? { replyTo: options.replyTo } : {}),
     });
 
     console.log(

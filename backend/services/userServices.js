@@ -6,6 +6,8 @@ import { LiveSession } from "../models/LiveSetion.js";
 import Lesson from "../models/Lesson.js";
 import Progress from "../models/Progress.js";
 import Certificate from "../models/Certificate.js";
+import ExamAttempt from "../models/ExamAttempt.js";
+import StudentReview from "../models/StudentReview.js";
 import crypto from "crypto";
 
 
@@ -40,7 +42,9 @@ export const enrollCourseService = async ({ userId, courseId }) => {
   // check course exists
   const course = await Course.findById(courseId);
   if (!course) {
-    throw new Error("Course not found");
+    const error = new Error("Course not found");
+    error.statusCode = 404;
+    throw error;
   }
 
   // prevent duplicate enrollment
@@ -50,7 +54,9 @@ export const enrollCourseService = async ({ userId, courseId }) => {
   });
 
   if (alreadyEnrolled) {
-    throw new Error("Already enrolled in this course");
+    const error = new Error("Already enrolled in this course");
+    error.statusCode = 409;
+    throw error;
   }
 
   const enrollment = await Enrollment.create({
@@ -97,42 +103,152 @@ export const getEnrolledCoursesService = async (userId) => {
     },
   });
 
-  const certificates = await Certificate.find({ student: userId });
+  const activeEnrollments = enrollments.filter(e => e.course && !e.course.isBlocked);
+  const courseIds = activeEnrollments.map((enrollment) => enrollment.course._id);
+  const [certificates, progressRecords, lessonCounts] = await Promise.all([
+    Certificate.find({ student: userId, course: { $in: courseIds } }),
+    Progress.find({ student: userId, course: { $in: courseIds } }),
+    Lesson.aggregate([
+      { $match: { courseId: { $in: courseIds } } },
+      { $group: { _id: "$courseId", count: { $sum: 1 } } },
+    ]),
+  ]);
+
   const certMap = new Map();
   certificates.forEach(c => {
     if (c.course) {
-      certMap.set(c.course.toString(), c._id);
+      certMap.set(c.course.toString(), {
+        id: c._id,
+        status: c.status,
+        courseCompleted: c.courseCompleted,
+      });
     }
   });
 
-  const activeEnrollments = enrollments.filter(e => e.course && !e.course.isBlocked);
+  const progressMap = new Map();
+  progressRecords.forEach((progress) => {
+    progressMap.set(progress.course.toString(), progress);
+  });
+
+  const lessonCountMap = new Map();
+  lessonCounts.forEach((item) => {
+    lessonCountMap.set(item._id.toString(), item.count);
+  });
 
   return activeEnrollments.map((enrollment) => {
 
     const course = enrollment.course;
-    const certId = certMap.get(course._id.toString()) || null;
+    const courseId = course._id.toString();
+    const certificate = certMap.get(courseId) || null;
+    const certificateApproved = ["approved", "issued"].includes(certificate?.status);
+    const progress = progressMap.get(courseId);
+    const completedLessons = progress?.completedLessons?.length || 0;
+    const totalLessons = lessonCountMap.get(courseId) || 0;
+    const progressPercentage = progress
+      ? progress.progressPercentage
+      : enrollment.progress || 0;
+    const courseCompleted =
+      enrollment.completed ||
+      enrollment.completionStatus === "completed" ||
+      progressPercentage >= 100 ||
+      certificateApproved;
 
     return {
 
       ...enrollment.toObject(),
 
-      progress: enrollment.progress || 0,
+      completed: courseCompleted,
 
-      completedLessons: enrollment.completedLessons || 0,
+      progress: courseCompleted ? 100 : progressPercentage,
+
+      completedLessons: courseCompleted && totalLessons > 0 ? totalLessons : completedLessons,
 
       nextLesson: enrollment.nextLesson || "Start Learning",
 
-      certificateId: certId,
+      certificateId: certificate?.id || null,
 
-      completionStatus: enrollment.completionStatus || (enrollment.completed ? "completed" : "in-progress"),
+      certificateStatus: certificate?.status || null,
+
+      completionStatus: courseCompleted ? "completed" : "in-progress",
 
       course: {
         ...course.toObject(),
 
-        lessonsCount: course.lessons?.length || 0,
+        lessonsCount: totalLessons,
       },
     };
   });
+};
+
+export const getStudentExamResultsService = async (userId) => {
+  const [taskAttempts, reviewSessions] = await Promise.all([
+    ExamAttempt.find({
+      student: userId,
+      status: { $ne: "draft" },
+      result: { $in: ["pass", "fail", "pending"] },
+    })
+      .populate({
+        path: "exam",
+        select: "title examType taskType type totalMarks",
+      })
+      .populate("course", "title")
+      .sort({ updatedAt: -1 })
+      .limit(20),
+    StudentReview.find({
+      $or: [{ student: userId }, { studentId: userId }],
+      status: { $in: ["Pass", "Failed", "Completed", "Cancelled"] },
+    })
+      .populate("course", "title")
+      .sort({ updatedAt: -1 })
+      .limit(20),
+  ]);
+
+  const machineTaskResults = taskAttempts
+    .filter((attempt) =>
+      attempt.exam &&
+      (
+        attempt.exam.examType === "machine_task" ||
+        attempt.exam.taskType === "task" ||
+        attempt.exam.type === "mission_task"
+      )
+    )
+    .map((attempt) => ({
+      _id: attempt._id,
+      kind: "machine_task",
+      label: "Machine Task",
+      title: attempt.exam?.title || "Machine Task",
+      courseTitle: attempt.course?.title || "Course",
+      status: attempt.status,
+      result: attempt.result,
+      score: attempt.score,
+      totalMarks: attempt.exam?.totalMarks || 100,
+      feedback: attempt.feedback || "",
+      submittedAt: attempt.submittedAt || attempt.createdAt,
+      updatedAt: attempt.updatedAt,
+    }));
+
+  const reviewResults = reviewSessions.map((session) => ({
+    _id: session._id,
+    kind: "review_exam",
+    label: "Review Exam",
+    title: session.course?.title || "Review Session",
+    courseTitle: session.course?.title || "Course",
+    status: session.status,
+    result: session.status === "Pass"
+      ? "pass"
+      : session.status === "Failed"
+        ? "fail"
+        : session.status.toLowerCase(),
+    score: session.mark,
+    totalMarks: 100,
+    feedback: session.notes || "",
+    submittedAt: session.reviewDate || session.createdAt,
+    updatedAt: session.updatedAt,
+  }));
+
+  return [...machineTaskResults, ...reviewResults]
+    .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
+    .slice(0, 20);
 };
 
 // get instructors for a student

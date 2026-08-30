@@ -1,4 +1,4 @@
-import Course from "../models/Course.js";
+﻿import Course from "../models/Course.js";
 import Enrollment from "../models/Enrollment.js";
 import Module from "../models/Module.js";
 import Lesson from "../models/Lesson.js";
@@ -7,6 +7,7 @@ import ExamAttempt from "../models/ExamAttempt.js";
 import Review from "../models/Review.js";
 import User from "../models/User.js";
 import { LiveSession } from "../models/LiveSetion.js";
+import { buildPaginationMeta, getPagination } from "../utils/pagination.js";
 
 const formatGrowth = (current, previous) => {
   if (previous === 0) {
@@ -59,9 +60,15 @@ export const getCoursesService = async (filters = {}) => {
   const {
     limit,
     skip,
+    page,
     landing,
     ...queryFilters
   } = filters;
+
+  const pagination = getPagination({ page, limit }, {
+    defaultLimit: 20,
+    maxLimit: Number(process.env.COURSES_MAX_LIMIT || 50),
+  });
 
   const query = {
     ...queryFilters,
@@ -74,17 +81,27 @@ export const getCoursesService = async (filters = {}) => {
     query.approvalStatus = "approved";
   }
 
-  const courses = await Course.find(query)
-    .populate("instructor", "name email profileImage verificationDetails studentsCount")
-    .sort({
-      approvalStatus: 1,
-      status: -1,
-      createdAt: -1,
-    })
-    .limit(limit ? parseInt(limit) : 0)
-    .skip(skip ? parseInt(skip) : 0);
+  const [total, courses] = await Promise.all([
+    Course.countDocuments(query),
+    Course.find(query)
+      .populate("instructor", "name email profileImage verificationDetails studentsCount")
+      .sort({
+        approvalStatus: 1,
+        status: -1,
+        createdAt: -1,
+      })
+      .limit(pagination.limit)
+      .skip(skip ? Math.max(0, Number.parseInt(skip, 10) || 0) : pagination.skip),
+  ]);
 
-  return courses;
+  return {
+    courses,
+    pagination: buildPaginationMeta({
+      page: pagination.page,
+      limit: pagination.limit,
+      total,
+    }),
+  };
 };
 
 // ================= PUBLIC LANDING COURSES =================
@@ -274,7 +291,7 @@ export const getCourseByIdService = async (
       course: courseId,
     });
 
-    // If not enrolled → hide paid lessons
+    // If not enrolled â†’ hide paid lessons
     if (!isEnrolled) {
       courseData.modules = courseData.modules.map((module) => ({
         ...module,
@@ -342,10 +359,26 @@ export const getCourseByIdService = async (
   };
 };
 
-export const getCourseReviewsService = async (courseId) => {
-  return await Review.find({ course: courseId })
-    .populate("user", "name profileImage")
-    .sort({ createdAt: -1 });
+export const getCourseReviewsService = async (courseId, query = {}) => {
+  const { page, limit, skip } = getPagination(query, {
+    defaultLimit: 20,
+    maxLimit: Number(process.env.REVIEWS_MAX_LIMIT || 50),
+  });
+
+  const filter = { course: courseId };
+  const [total, reviews] = await Promise.all([
+    Review.countDocuments(filter),
+    Review.find(filter)
+      .populate("user", "name profileImage")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
+  ]);
+
+  return {
+    reviews,
+    pagination: buildPaginationMeta({ page, limit, total }),
+  };
 };
 
 export const submitCourseReviewService = async ({
@@ -486,3 +519,5 @@ export const deleteCourseService = async (
 
   return true;
 };
+
+

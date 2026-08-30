@@ -1,9 +1,10 @@
-import User from "../models/User.js";
+﻿import User from "../models/User.js";
 import Course from "../models/Course.js";
 import Category from "../models/Category.js";
 import Offer from "../models/Offer.js";
 import Payment from "../models/Payment.js";
 import { LiveSession } from "../models/LiveSetion.js";
+import { getPagination } from "../utils/pagination.js";
 import Module from "../models/Module.js";
 import Lesson from "../models/Lesson.js";
 import Enrollment from "../models/Enrollment.js";
@@ -13,9 +14,15 @@ import { sendEmail } from "../utils/sendEmail.js";
 import { instructorApprovalTemplate } from "../utils/emailTemplate.js";
 
 
-// ✅ User management
-export const getAllUsersService = async () => {
-  return await User.find().select("-password");
+// âœ… User management
+export const getAllUsersService = async (query = {}) => {
+  const { limit, skip } = getPagination(query, { defaultLimit: 50, maxLimit: 100 });
+  return await User.find()
+    .select("-password")
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .lean();
 };
 
 export const deleteUserService = async (userId) => {
@@ -25,8 +32,9 @@ export const deleteUserService = async (userId) => {
   return true;
 };
 
-// ✅ Course management
-export const getAllCoursesAdminService = async () => {
+// âœ… Course management
+export const getAllCoursesAdminService = async (query = {}) => {
+  const { limit, skip } = getPagination(query, { defaultLimit: 20, maxLimit: 50 });
   return await Course.find()
     .populate("instructor", "name")
     .populate({
@@ -36,7 +44,10 @@ export const getAllCoursesAdminService = async () => {
         path: "lessons",
         options: { sort: { order: 1 } },
       },
-    });
+    })
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
 };
 
 export const deleteCourseAdminService = async (courseId) => {
@@ -77,7 +88,7 @@ export const updateCourseStatusService = async (courseId, status) => {
   return course;
 };
 
-// ✅ Instructor management
+// âœ… Instructor management
 export const getInstructorRequestsService = async () => {
   return await User.find({
     role: "instructor",
@@ -127,7 +138,7 @@ export const updateInstructorStatusService = async (userId, status) => {
   };
 };
 
-// ✅ Platform Stats
+// âœ… Platform Stats
 export const getAdminStatsService = async () => {
   const [totalStudents, totalInstructors, totalCourses, pendingApprovals, totalRevenueAgg] = await Promise.all([
     User.countDocuments({ role: "student" }),
@@ -166,7 +177,7 @@ export const getAdminStatsService = async () => {
   };
 };
 
-// ✅ Categories
+// âœ… Categories
 export const getAllCategoriesService = async () => {
   return await Category.find();
 };
@@ -183,7 +194,7 @@ export const updateCategoryService = async (id, data) => {
   return await Category.findByIdAndUpdate(id, data, { new: true });
 };
 
-// ✅ Offers
+// âœ… Offers
 export const getAllOffersService = async () => {
   return await Offer.find();
 };
@@ -196,63 +207,75 @@ export const deleteOfferService = async (id) => {
   return await Offer.findByIdAndDelete(id);
 };
 
-// ✅ Earnings & Payments
+// âœ… Earnings & Payments
 export const getEarningsService = async () => {
-  const payments = await Payment.find({ status: "paid" }).populate("course", "title category");
-
-  const totalRevenue = payments.reduce((sum, p) => sum + p.amount, 0);
-  const platformProfit = totalRevenue * 0.2;
-  const instructorPayouts = totalRevenue * 0.8;
-
-  // Monthly data for chart
-  const monthlyData = await Payment.aggregate([
-    { $match: { status: "paid" } },
-    { $group: {
-        _id: { $month: "$createdAt" },
-        revenue: { $sum: "$amount" }
-      }
-    },
-    { $sort: { "_id": 1 } }
+  const [totalRevenueAgg, monthlyData, categoryDataAgg] = await Promise.all([
+    Payment.aggregate([
+      { $match: { status: "paid" } },
+      { $group: { _id: null, total: { $sum: "$amount" } } },
+    ]),
+    Payment.aggregate([
+      { $match: { status: "paid" } },
+      {
+        $group: {
+          _id: { $month: "$createdAt" },
+          revenue: { $sum: "$amount" },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]),
+    Payment.aggregate([
+      { $match: { status: "paid" } },
+      {
+        $lookup: {
+          from: "courses",
+          localField: "course",
+          foreignField: "_id",
+          as: "courseDoc",
+        },
+      },
+      { $unwind: { path: "$courseDoc", preserveNullAndEmptyArrays: true } },
+      {
+        $group: {
+          _id: { $ifNull: ["$courseDoc.category", "Uncategorized"] },
+          value: { $sum: "$amount" },
+        },
+      },
+    ]),
   ]);
 
+  const totalRevenue = totalRevenueAgg[0]?.total || 0;
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const chartData = monthlyData.map(d => ({
+  const chartData = monthlyData.map((d) => ({
     name: months[d._id - 1],
-    revenue: d.revenue
+    revenue: d.revenue,
   }));
 
-  // Category data
-  const categoryRevenueMap = {};
-  payments.forEach(p => {
-    if (p.course && p.course.category) {
-      const cat = p.course.category;
-      categoryRevenueMap[cat] = (categoryRevenueMap[cat] || 0) + p.amount;
-    } else {
-      categoryRevenueMap['Uncategorized'] = (categoryRevenueMap['Uncategorized'] || 0) + p.amount;
-    }
-  });
-
-  const categoryData = Object.keys(categoryRevenueMap).map(cat => ({
-    label: cat,
-    value: categoryRevenueMap[cat],
-    percent: totalRevenue > 0 ? Math.round((categoryRevenueMap[cat] / totalRevenue) * 100) : 0
+  const categoryData = categoryDataAgg.map((cat) => ({
+    label: cat._id,
+    value: cat.value,
+    percent: totalRevenue > 0 ? Math.round((cat.value / totalRevenue) * 100) : 0,
   }));
 
   return {
     totalRevenue,
-    platformProfit,
-    instructorPayouts,
+    platformProfit: totalRevenue * 0.2,
+    instructorPayouts: totalRevenue * 0.8,
     pendingPayouts: 0,
     chartData,
-    categoryData
+    categoryData,
   };
 };
 
-export const getAllPaymentsService = async () => {
+export const getAllPaymentsService = async (query = {}) => {
+  const { limit, skip } = getPagination(query, { defaultLimit: 50, maxLimit: 100 });
   return await Payment.find()
     .populate("user", "name email")
     .populate("course", "title")
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .lean();
 };
 
 export const getPaymentByIdService = async (id) => {
@@ -261,21 +284,38 @@ export const getPaymentByIdService = async (id) => {
     .populate("course", "title");
 };
 
-// ✅ Live Sessions
-export const getInstructorAvailabilityService = async () => {
-  return await LiveSession.find().populate("instructor", "name").populate("course", "title");
+// âœ… Live Sessions
+export const getInstructorAvailabilityService = async (query = {}) => {
+  const { limit, skip } = getPagination(query, { defaultLimit: 50, maxLimit: 100 });
+  return await LiveSession.find()
+    .populate("instructor", "name")
+    .populate("course", "title")
+    .sort({ startTime: -1 })
+    .skip(skip)
+    .limit(limit)
+    .lean();
 };
 
-export const getAdminLiveSessionsService = async () => {
+export const getAdminLiveSessionsService = async (query = {}) => {
+  const { limit, skip } = getPagination(query, { defaultLimit: 50, maxLimit: 100 });
   return await LiveSession.find()
     .populate("instructor", "name email")
     .populate("course", "title")
-    .sort({ startTime: -1 });
+    .sort({ startTime: -1 })
+    .skip(skip)
+    .limit(limit)
+    .lean();
 };
 
-// ✅ User Blocking
-export const getBlockedUsersService = async () => {
-  return await User.find({ isBlocked: true }).select("-password");
+// âœ… User Blocking
+export const getBlockedUsersService = async (query = {}) => {
+  const { limit, skip } = getPagination(query, { defaultLimit: 50, maxLimit: 100 });
+  return await User.find({ isBlocked: true })
+    .select("-password")
+    .sort({ blockedAt: -1, createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .lean();
 };
 
 export const blockUserService = async (userId, reason, adminId) => {
@@ -304,7 +344,7 @@ export const unblockUserService = async (userId) => {
   return user;
 };
 
-// ✅ Activity Feed
+// âœ… Activity Feed
 export const getActivityFeedService = async () => {
   const [recentUsers, recentCourses, recentPayments] = await Promise.all([
     User.find().sort({ createdAt: -1 }).limit(5).select("name role createdAt"),
@@ -330,7 +370,7 @@ export const getActivityFeedService = async () => {
     ...recentPayments.map(p => ({
       id: p._id,
       user: p.studentName || 'Student',
-      action: `purchased a course (₹${p.amount})`,
+      action: `purchased a course (â‚¹${p.amount})`,
       time: p.createdAt,
       type: 'payment'
     }))
@@ -339,7 +379,7 @@ export const getActivityFeedService = async () => {
   return activities.sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, 10);
 };
 
-// ✅ Reports Data
+// âœ… Reports Data
 export const getReportsDataService = async (fromDate, toDate) => {
   try {
     const paymentMatch = { status: "paid" };
@@ -414,3 +454,6 @@ export const getReportsDataService = async (fromDate, toDate) => {
     throw error;
   }
 };
+
+
+

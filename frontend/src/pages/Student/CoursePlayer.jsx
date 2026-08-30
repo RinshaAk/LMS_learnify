@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { getCourseMissions, submitMission } from '../../services/missionService';
 import { getCourseProgress, completeLesson, getVideoProgress, saveVideoProgress } from '../../services/progressService';
+import { getVideoPlaybackUrl } from '../../services/courseService';
 import { toast } from 'react-hot-toast';
 
 const CoursePlayer = () => {
@@ -98,6 +99,9 @@ const CoursePlayer = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
   const [currentLessonWatchPercentage, setCurrentLessonWatchPercentage] = useState(0);
+  const [currentVideoUrl, setCurrentVideoUrl] = useState('');
+  const [currentVideoLoading, setCurrentVideoLoading] = useState(false);
+  const [currentVideoError, setCurrentVideoError] = useState('');
 
   const videoRef = React.useRef(null);
   const playerContainerRef = React.useRef(null);
@@ -242,6 +246,52 @@ const CoursePlayer = () => {
     loadVideoProgress();
   }, [currentLessonId, currentLesson?._id]);
 
+  useEffect(() => {
+    let isActive = true;
+
+    const loadPlaybackUrl = async () => {
+      setCurrentVideoUrl('');
+      setCurrentVideoError('');
+      setVideoDuration(0);
+      setVideoCurrentTime(0);
+
+      if (!currentLesson?.videoUrl) {
+        return;
+      }
+
+      try {
+        setCurrentVideoLoading(true);
+        const data = await getVideoPlaybackUrl({
+          videoUrl: currentLesson.videoUrl,
+          courseId: id,
+          lessonId: currentLesson._id,
+        });
+
+        if (isActive) {
+          setCurrentVideoUrl(data.url || currentLesson.videoUrl);
+        }
+      } catch (err) {
+        console.error("Error loading video playback URL:", err);
+
+        if (isActive) {
+          setCurrentVideoError(err.response?.data?.message || "This lesson video could not be loaded.");
+        }
+      } finally {
+        if (isActive) {
+          setCurrentVideoLoading(false);
+        }
+      }
+    };
+
+    clearBufferingIndicator();
+    setIsPlaying(false);
+    loadPlaybackUrl();
+
+    return () => {
+      isActive = false;
+    };
+  }, [currentLesson?._id, currentLesson?.videoUrl, id]);
+
   const saveProgressToDb = async (forceCompleted = false) => {
     const video = videoRef.current;
     if (!video || !currentLesson?._id) return;
@@ -249,7 +299,7 @@ const CoursePlayer = () => {
     const currentTime = video.currentTime;
     const duration = video.duration || 0;
     
-    if (!duration) return;
+    if (!Number.isFinite(currentTime) || !Number.isFinite(duration) || duration <= 0) return;
 
     const watchPct = forceCompleted ? 100 : Math.min(100, Math.round((currentTime / duration) * 100));
     
@@ -297,7 +347,7 @@ const CoursePlayer = () => {
 
   const togglePlay = () => {
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || !currentVideoUrl || currentVideoError) return;
     if (isPlaying) {
       video.pause();
       setIsPlaying(false);
@@ -305,7 +355,10 @@ const CoursePlayer = () => {
     } else {
       video.play().then(() => {
         setIsPlaying(true);
-      }).catch(err => console.error("Error playing video:", err));
+      }).catch((err) => {
+        console.error("Error playing video:", err);
+        setCurrentVideoError("This video format or source is not supported by the browser.");
+      });
     }
   };
 
@@ -363,7 +416,7 @@ const CoursePlayer = () => {
 
   const seekRelative = (seconds) => {
     const video = videoRef.current;
-    if (video) {
+    if (video && Number.isFinite(video.duration) && Number.isFinite(video.currentTime)) {
       video.currentTime = Math.max(0, Math.min(video.duration, video.currentTime + seconds));
     }
   };
@@ -371,7 +424,7 @@ const CoursePlayer = () => {
   const handleTimelineChange = (e) => {
     const seekPct = parseFloat(e.target.value);
     const video = videoRef.current;
-    if (video && video.duration) {
+    if (video && Number.isFinite(video.duration) && video.duration > 0) {
       const newTime = (seekPct / 100) * video.duration;
       video.currentTime = newTime;
       setVideoCurrentTime(newTime);
@@ -404,7 +457,7 @@ const CoursePlayer = () => {
   }, []);
 
   const formatVideoTime = (seconds) => {
-    if (isNaN(seconds) || seconds === null) return "0:00";
+    if (!Number.isFinite(seconds) || seconds === null) return "0:00";
     const hrs = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
     const secs = Math.floor(seconds % 60);
@@ -476,16 +529,36 @@ const CoursePlayer = () => {
       <div className="flex-1 min-w-0 flex flex-col bg-slate-900">
         {/* Video Player Container */}
         <div ref={playerContainerRef} className="w-full aspect-video lg:max-h-[52vh] relative group bg-black flex items-center justify-center shrink-0 overflow-hidden shadow-2xl">
-          {currentLesson?.videoUrl ? (
+          {currentVideoLoading ? (
+            <div className="text-center p-8">
+              <Loader2 className="w-12 h-12 text-blue-500 mx-auto mb-3 animate-spin" />
+              <p className="text-slate-300 font-bold">Loading lesson video...</p>
+            </div>
+          ) : currentVideoError ? (
+            <div className="text-center p-8">
+              <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
+              <p className="text-slate-300 font-bold">{currentVideoError}</p>
+            </div>
+          ) : currentVideoUrl ? (
             <>
               <video
                 key={currentLesson._id}
                 ref={videoRef}
-                src={currentLesson.videoUrl}
+                src={currentVideoUrl}
                 autoPlay
                 onClick={togglePlay}
-                onTimeUpdate={() => setVideoCurrentTime(videoRef.current?.currentTime || 0)}
-                onDurationChange={() => setVideoDuration(videoRef.current?.duration || 0)}
+                onTimeUpdate={() => {
+                  const currentTime = videoRef.current?.currentTime || 0;
+                  setVideoCurrentTime(Number.isFinite(currentTime) ? currentTime : 0);
+                }}
+                onDurationChange={() => {
+                  const duration = videoRef.current?.duration || 0;
+                  setVideoDuration(Number.isFinite(duration) ? duration : 0);
+                }}
+                onError={() => {
+                  setIsPlaying(false);
+                  setCurrentVideoError("This video could not be played. It may still be processing or the format is unsupported.");
+                }}
                 onWaiting={handleVideoWaiting}
                 onStalled={handleVideoWaiting}
                 onPlaying={handleVideoPlaying}

@@ -13,6 +13,10 @@ const createHttpError = (message, statusCode = 400) => {
 const getExamStart = (exam) => exam.scheduledAt || exam.scheduledDate;
 
 const getExamEnd = (exam) => {
+  if (exam.taskType === "task" || exam.type === "mission_task") {
+    return exam.deadline || null;
+  }
+
   const start = getExamStart(exam);
   if (start && Number(exam.duration || 0) > 0) {
     return new Date(new Date(start).getTime() + Number(exam.duration) * 60 * 1000);
@@ -29,7 +33,16 @@ const assertExamWindowOpen = (exam) => {
 
   if (start && now < new Date(start)) throw createHttpError("This exam has not started yet", 403);
   if (end && now > new Date(end)) throw createHttpError("This exam is closed", 403);
-  if (["completed", "expired"].includes(exam.status)) throw createHttpError("This exam is closed", 403);
+  if (!start && !end && ["completed", "expired"].includes(exam.status)) {
+    throw createHttpError("This exam is closed", 403);
+  }
+};
+
+const hasStudentAssignmentRestriction = (exam) => Array.isArray(exam.assignedStudents) && exam.assignedStudents.length > 0;
+
+const isStudentAssignedToExam = (exam, userId) => {
+  if (!hasStudentAssignmentRestriction(exam)) return true;
+  return exam.assignedStudents.some((studentId) => studentId.toString() === userId);
 };
 
 // Check Eligibility
@@ -41,6 +54,7 @@ export const checkAttemptEligibilityService = async (userId, examId) => {
   const enrollment = await Enrollment.findOne({ user: userId, course: exam.course });
   const directlyAssigned = exam.assignedStudents?.some((studentId) => studentId.toString() === userId);
   if (!enrollment && !directlyAssigned) throw createHttpError("You are not assigned to this exam", 403);
+  if (enrollment && !isStudentAssignedToExam(exam, userId)) throw createHttpError("You are not assigned to this exam", 403);
 
   if (exam.isDraft) throw createHttpError("Exam is not published", 403);
 

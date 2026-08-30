@@ -91,16 +91,29 @@ export const gradeAttempt = async (attemptId, score, feedback) => {
   }
 };
 
-export const uploadExamResource = async (file) => {
+export const uploadExamResource = async (file, courseId) => {
   try {
     const formData = new FormData();
     formData.append('resource', file);
+    if (courseId) formData.append('courseId', courseId);
     const response = await axiosInstance.post('/uploads/resource', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return response.data;
   } catch (error) {
     console.error('Error uploading assessment resource:', error);
+    throw error;
+  }
+};
+
+export const getExamResourceUrl = async (examId, key) => {
+  try {
+    const response = await axiosInstance.get(`/exams/${examId}/resource-url`, {
+      params: key ? { key } : {},
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error getting assessment resource URL:', error);
     throw error;
   }
 };
@@ -174,6 +187,7 @@ export default {
   getInstructorExams,
   createExam,
   uploadExamResource,
+  getExamResourceUrl,
   getExamAttempts,
   gradeAttempt,
   approveAttempt,

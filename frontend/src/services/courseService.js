@@ -90,6 +90,20 @@ export const getCourseLessons = async (courseId) => {
   }
 };
 
+export const getVideoPlaybackUrl = async ({ videoUrl, courseId, lessonId }) => {
+  try {
+    const response = await axiosInstance.post('/uploads/video/playback-url', {
+      videoUrl,
+      courseId,
+      lessonId,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error loading video playback URL:', error);
+    throw error;
+  }
+};
+
 // Create new course (for instructors)
 export const createCourse = async (courseData) => {
   try {
@@ -121,6 +135,7 @@ export default {
   getCourseReviews,
   submitCourseReview,
   getCourseLessons,
+  getVideoPlaybackUrl,
   createCourse,
   updateCourse,
 };
