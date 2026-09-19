@@ -42,16 +42,27 @@ export const publishCourse = async (courseId) => {
 };
 
 export const uploadThumbnail = async (file) => {
-  const formData = new FormData();
-  formData.append("thumbnail", file);
-  const response = await axiosInstance.post("/uploads/thumbnail", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-    timeout: Number(import.meta.env.VITE_UPLOAD_TIMEOUT_MS || 30000),
-  });
-  return response.data;
+  try {
+    const formData = new FormData();
+    formData.append("thumbnail", file);
+    const response = await axiosInstance.post("/uploads/thumbnail", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+      timeout: Number(import.meta.env.VITE_UPLOAD_TIMEOUT_MS || 30000),
+    });
+    return response.data;
+  } catch (error) {
+    if (error.response?.status === 413) {
+      error.userMessage = "Thumbnail is too large. Please choose a smaller image.";
+    } else if (!error.response && error.message === "Network Error") {
+      error.userMessage = "Thumbnail upload was blocked by the server. Please try a smaller JPG or WEBP image.";
+    }
+
+    throw error;
+  }
 };
 
 export const uploadVideo = async (file, courseId) => {
+  
   if (!courseId) {
     throw new Error("Create or select a course before uploading video.");
   }

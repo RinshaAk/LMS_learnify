@@ -1,5 +1,9 @@
 ﻿import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
+import {
+  buildAllowedCorsOrigins,
+  isCorsOriginAllowed,
+} from "../config/cors.js";
 import { env } from "../config/env.config.js";
 import User from "../models/User.js";
 
@@ -96,9 +100,17 @@ const guardSocketEvent = (socket, eventName, limiter = signalingLimiter) => {
 };
 
 export const initializeSocket = (server) => {
+  const allowedOrigins = buildAllowedCorsOrigins(env);
+
   io = new Server(server, {
     cors: {
-      origin: env.CLIENT_URL,
+      origin: (origin, callback) => {
+        if (isCorsOriginAllowed(origin, allowedOrigins)) {
+          return callback(null, true);
+        }
+
+        return callback(new Error("Not allowed by CORS"));
+      },
       methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
       credentials: true,
     },

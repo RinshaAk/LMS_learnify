@@ -39,6 +39,79 @@ import adminService from '../../services/adminService';
 
 const THUMBNAIL_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const THUMBNAIL_MAX_SIZE = 5 * 1024 * 1024;
+const THUMBNAIL_UPLOAD_MAX_SIZE = 900 * 1024;
+const THUMBNAIL_MAX_WIDTH = 1200;
+const THUMBNAIL_MAX_HEIGHT = 675;
+
+const loadImageFromFile = (file) =>
+  new Promise((resolve, reject) => {
+    const image = new Image();
+    const objectUrl = URL.createObjectURL(file);
+
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(image);
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Could not read thumbnail image."));
+    };
+
+    image.src = objectUrl;
+  });
+
+const canvasToBlob = (canvas, type, quality) =>
+  new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          reject(new Error("Could not prepare thumbnail image."));
+          return;
+        }
+
+        resolve(blob);
+      },
+      type,
+      quality
+    );
+  });
+
+const prepareThumbnailForUpload = async (file) => {
+  const image = await loadImageFromFile(file);
+  const scale = Math.min(
+    THUMBNAIL_MAX_WIDTH / image.width,
+    THUMBNAIL_MAX_HEIGHT / image.height,
+    1
+  );
+  const width = Math.max(1, Math.round(image.width * scale));
+  const height = Math.max(1, Math.round(image.height * scale));
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
+
+  if (!context) {
+    throw new Error("Could not prepare thumbnail image.");
+  }
+
+  canvas.width = width;
+  canvas.height = height;
+  context.drawImage(image, 0, 0, width, height);
+
+  let quality = 0.86;
+  let blob = await canvasToBlob(canvas, 'image/jpeg', quality);
+
+  while (blob.size > THUMBNAIL_UPLOAD_MAX_SIZE && quality > 0.5) {
+    quality -= 0.08;
+    blob = await canvasToBlob(canvas, 'image/jpeg', quality);
+  }
+
+  const safeName = file.name.replace(/\.[^.]+$/, '') || 'thumbnail';
+
+  return new File([blob], `${safeName}.jpg`, {
+    type: 'image/jpeg',
+    lastModified: Date.now(),
+  });
+};
 
 const CreateCourse = () => {
   const navigate = useNavigate();
@@ -165,18 +238,19 @@ const CreateCourse = () => {
 
     try {
       setUploadingThumbnail(true);
+      const uploadFile = await prepareThumbnailForUpload(file);
       const reader = new FileReader();
       reader.onloadend = () => setThumbnailPreview(reader.result);
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(uploadFile);
 
-      const result = await uploadThumbnail(file);
+      const result = await uploadThumbnail(uploadFile);
       setCourseData(prev => ({ ...prev, thumbnail: result.url }));
       setThumbnailPreview(result.url);
       toast.success("Thumbnail uploaded!");
     } catch (error) {
       console.error("Thumbnail upload failed:", error);
       setThumbnailPreview(previousPreview);
-      toast.error(error.response?.data?.message || error.userMessage || "Failed to upload thumbnail.");
+      toast.error(error.userMessage || error.response?.data?.message || "Failed to upload thumbnail.");
     } finally {
       setUploadingThumbnail(false);
       e.target.value = '';
