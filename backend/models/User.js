@@ -71,6 +71,12 @@ const userSchema = new mongoose.Schema(
       certifications: [{ type: String }],
       documents: [{ type: String }],
     },
+    socialLinks: {
+      website: { type: String, default: "" },
+      linkedin: { type: String, default: "" },
+      twitter: { type: String, default: "" },
+      github: { type: String, default: "" },
+    },
     enrolledCourses: [
       {
         type: mongoose.Schema.Types.ObjectId,

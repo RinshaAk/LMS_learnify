@@ -16,7 +16,8 @@ import {
   Clock,
   MapPin,
   Image as ImageIcon,
-  Loader2
+  Loader2,
+  X
 } from 'lucide-react';
 import { FaTwitter, FaLinkedin, FaGithub, FaGlobe } from 'react-icons/fa';
 import { updateProfile } from '../../features/auth/authSlice';
@@ -27,6 +28,21 @@ const InstructorProfile = () => {
   const dispatch = useDispatch();
   const fileInputRef = useRef(null);
   const [avatarLoading, setAvatarLoading] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: '',
+    phone: '',
+    location: '',
+    bio: '',
+    education: '',
+    expertise: '',
+    experience: '',
+    website: '',
+    linkedin: '',
+    twitter: '',
+    github: '',
+  });
   const { user } = useSelector((state) => state.auth);
   const { dashboardData } = useSelector((state) => state.instructor);
 
@@ -60,6 +76,65 @@ const InstructorProfile = () => {
       toast.error(err.response?.data?.message || "Failed to update profile picture");
     } finally {
       setAvatarLoading(false);
+    }
+  };
+
+  const openEditModal = () => {
+    setEditForm({
+      name: user?.name || '',
+      phone: user?.phone || '',
+      location: user?.location || '',
+      bio: user?.bio || '',
+      education: user?.verificationDetails?.education || '',
+      expertise: user?.verificationDetails?.expertise || '',
+      experience: user?.verificationDetails?.experience || '',
+      website: user?.socialLinks?.website || '',
+      linkedin: user?.socialLinks?.linkedin || '',
+      twitter: user?.socialLinks?.twitter || '',
+      github: user?.socialLinks?.github || '',
+    });
+    setShowEditModal(true);
+  };
+
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleProfileSave = async (e) => {
+    e.preventDefault();
+
+    if (!editForm.name.trim()) {
+      toast.error("Name is required.");
+      return;
+    }
+
+    try {
+      setSavingProfile(true);
+      await dispatch(updateProfile({
+        name: editForm.name.trim(),
+        phone: editForm.phone.trim(),
+        location: editForm.location.trim(),
+        bio: editForm.bio.trim(),
+        verificationDetails: {
+          ...(user?.verificationDetails || {}),
+          education: editForm.education.trim(),
+          expertise: editForm.expertise.trim(),
+          experience: editForm.experience.trim(),
+        },
+        socialLinks: {
+          website: editForm.website.trim(),
+          linkedin: editForm.linkedin.trim(),
+          twitter: editForm.twitter.trim(),
+          github: editForm.github.trim(),
+        },
+      })).unwrap();
+      setShowEditModal(false);
+      toast.success("Profile updated successfully!");
+    } catch (err) {
+      toast.error(typeof err === 'string' ? err : err?.message || "Failed to update profile.");
+    } finally {
+      setSavingProfile(false);
     }
   };
   
@@ -158,7 +233,11 @@ const InstructorProfile = () => {
                 </div>
               </div>
               
-              <button className="w-full md:w-auto mb-2 md:mb-4 px-6 md:px-8 py-3 md:py-4 bg-slate-900 text-white rounded-2xl font-bold text-sm hover:bg-blue-600 transition-all flex items-center justify-center gap-3 active:scale-95 shadow-xl shadow-slate-100 whitespace-nowrap">
+              <button
+                type="button"
+                onClick={openEditModal}
+                className="w-full md:w-auto mb-2 md:mb-4 px-6 md:px-8 py-3 md:py-4 bg-slate-900 text-white rounded-2xl font-bold text-sm hover:bg-blue-600 transition-all flex items-center justify-center gap-3 active:scale-95 shadow-xl shadow-slate-100 whitespace-nowrap"
+              >
                 <Edit3 size={18} />
                 Edit Profile
               </button>
@@ -289,6 +368,94 @@ const InstructorProfile = () => {
           </div>
         </div>
       </div>
+
+      {showEditModal && (
+        <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-slate-950/60 p-4 backdrop-blur-sm md:p-8">
+          <form
+            onSubmit={handleProfileSave}
+            className="w-full max-w-3xl rounded-[2rem] bg-white shadow-2xl"
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 p-6">
+              <div>
+                <h3 className="text-xl font-black text-slate-900">Edit Profile</h3>
+                <p className="mt-1 text-sm font-medium text-slate-500">Update the information shown on your instructor profile.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowEditModal(false)}
+                className="rounded-2xl p-3 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="grid gap-5 p-6 md:grid-cols-2">
+              <label className="space-y-2">
+                <span className="text-xs font-black uppercase tracking-widest text-slate-500">Name</span>
+                <input name="name" value={editForm.name} onChange={handleEditChange} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100" />
+              </label>
+              <label className="space-y-2">
+                <span className="text-xs font-black uppercase tracking-widest text-slate-500">Phone</span>
+                <input name="phone" value={editForm.phone} onChange={handleEditChange} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100" />
+              </label>
+              <label className="space-y-2">
+                <span className="text-xs font-black uppercase tracking-widest text-slate-500">Location</span>
+                <input name="location" value={editForm.location} onChange={handleEditChange} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100" />
+              </label>
+              <label className="space-y-2">
+                <span className="text-xs font-black uppercase tracking-widest text-slate-500">Experience</span>
+                <input name="experience" value={editForm.experience} onChange={handleEditChange} placeholder="3 years" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100" />
+              </label>
+              <label className="space-y-2">
+                <span className="text-xs font-black uppercase tracking-widest text-slate-500">Education</span>
+                <input name="education" value={editForm.education} onChange={handleEditChange} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100" />
+              </label>
+              <label className="space-y-2">
+                <span className="text-xs font-black uppercase tracking-widest text-slate-500">Expertise</span>
+                <input name="expertise" value={editForm.expertise} onChange={handleEditChange} placeholder="React, Node.js, UI/UX" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100" />
+              </label>
+              <label className="space-y-2 md:col-span-2">
+                <span className="text-xs font-black uppercase tracking-widest text-slate-500">Biography</span>
+                <textarea name="bio" value={editForm.bio} onChange={handleEditChange} rows="4" className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100" />
+              </label>
+              <label className="space-y-2">
+                <span className="text-xs font-black uppercase tracking-widest text-slate-500">Website</span>
+                <input name="website" value={editForm.website} onChange={handleEditChange} placeholder="https://example.com" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100" />
+              </label>
+              <label className="space-y-2">
+                <span className="text-xs font-black uppercase tracking-widest text-slate-500">LinkedIn</span>
+                <input name="linkedin" value={editForm.linkedin} onChange={handleEditChange} placeholder="https://linkedin.com/in/..." className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100" />
+              </label>
+              <label className="space-y-2">
+                <span className="text-xs font-black uppercase tracking-widest text-slate-500">Twitter/X</span>
+                <input name="twitter" value={editForm.twitter} onChange={handleEditChange} placeholder="https://x.com/..." className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100" />
+              </label>
+              <label className="space-y-2">
+                <span className="text-xs font-black uppercase tracking-widest text-slate-500">GitHub</span>
+                <input name="github" value={editForm.github} onChange={handleEditChange} placeholder="https://github.com/..." className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100" />
+              </label>
+            </div>
+
+            <div className="flex flex-col-reverse gap-3 border-t border-slate-100 p-6 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setShowEditModal(false)}
+                className="rounded-2xl border border-slate-200 px-6 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={savingProfile}
+                className="flex items-center justify-center gap-2 rounded-2xl bg-slate-900 px-6 py-3 text-sm font-bold text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {savingProfile && <Loader2 size={16} className="animate-spin" />}
+                Save Changes
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 };
