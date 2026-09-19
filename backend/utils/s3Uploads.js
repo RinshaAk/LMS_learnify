@@ -166,7 +166,6 @@ export const createPresignedVideoUpload = async ({ courseId, userId, fileName, c
     Bucket: bucket,
     Key: key,
     ContentType: contentType,
-    ContentLength: Number(fileSize),
     Metadata: {
       courseId: String(courseId),
       uploadedBy: String(userId),
