@@ -304,6 +304,18 @@ const CreateCourse = () => {
           const result = await createCourseDraft(payload);
           setCourseId(result.course._id);
           toast.success("Course draft created!");
+        } else {
+          const payload = {
+            title: courseData.title,
+            subtitle: courseData.subtitle,
+            description: courseData.description,
+            category: courseData.category,
+            level: courseData.level,
+            language: courseData.language,
+            thumbnail: courseData.thumbnail,
+          };
+          await updateCourse(courseId, payload);
+          toast.success("Course details saved!");
         }
         setStep(2);
       } else if (step === 2) {
@@ -363,6 +375,15 @@ const CreateCourse = () => {
         const finalToast = toast.loading("Finalizing course...");
         try {
           await updateCourse(courseId, {
+            title: courseData.title,
+            subtitle: courseData.subtitle,
+            description: courseData.description,
+            category: courseData.category,
+            level: courseData.level,
+            language: courseData.language,
+            price: parseFloat(courseData.price) || 0,
+            discountPrice: parseFloat(courseData.discountPrice) || 0,
+            thumbnail: courseData.thumbnail,
             ...settings
           });
           await publishCourse(courseId);
