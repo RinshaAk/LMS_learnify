@@ -62,7 +62,6 @@ export const uploadThumbnail = async (file) => {
 };
 
 export const uploadVideo = async (file, courseId) => {
-  
   if (!courseId) {
     throw new Error("Create or select a course before uploading video.");
   }
@@ -76,10 +75,19 @@ export const uploadVideo = async (file, courseId) => {
 
   const { uploadUrl, url, headers } = presignResponse.data;
 
-  await axios.put(uploadUrl, file, {
-    headers,
-    timeout: Number(import.meta.env.VITE_VIDEO_UPLOAD_TIMEOUT_MS || 120000),
-  });
+  try {
+    await axios.put(uploadUrl, file, {
+      headers,
+      timeout: Number(import.meta.env.VITE_VIDEO_UPLOAD_TIMEOUT_MS || 120000),
+    });
+  } catch (error) {
+    if (!error.response && error.message === "Network Error") {
+      error.userMessage =
+        "Video upload was blocked by S3 CORS. Please check the S3 bucket CORS settings for stackversehub.in.";
+    }
+
+    throw error;
+  }
 
   return {
     success: true,

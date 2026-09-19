@@ -14,11 +14,25 @@ import crypto from "crypto";
 
 // ✅ Create Basic Course (Draft)
 export const createCourseDraftService = async (instructorId, courseData) => {
-  const existingCourse = await Course.findOne({ title: courseData.title });
-  if (existingCourse) throw new Error("Course title already exists");
+  const title = String(courseData.title || "").trim();
+
+  if (!title) {
+    const err = new Error("Course title is required");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const existingCourse = await Course.findOne({ title });
+
+  if (existingCourse) {
+    const err = new Error("Course title already exists");
+    err.statusCode = 409;
+    throw err;
+  }
 
   const course = await Course.create({
     ...courseData,
+    title,
     instructor: instructorId,
     status: "draft",
   });
