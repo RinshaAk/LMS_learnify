@@ -8,6 +8,12 @@ dotenv.config({
     path: resolve(__dirname, '../.env'),
 });
 
+const parseList = (value) =>
+  String(value || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
 export const env={
     PORT:process.env.PORT,
     NODE_ENV:
@@ -16,6 +22,7 @@ export const env={
     process.env.MONGO_URL,
     JWT_SECRET:process.env.JWT_SECRET,
     CLIENT_URL:process.env.CLIENT_URL,
+    CLIENT_URLS: parseList(process.env.CLIENT_URLS),
     REDIS_URL:
   process.env.REDIS_URL ||
   "redis://127.0.0.1:6379",

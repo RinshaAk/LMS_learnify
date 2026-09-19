@@ -1,5 +1,9 @@
 ﻿import assert from "node:assert/strict";
 import { test } from "node:test";
+import {
+  buildAllowedCorsOrigins,
+  isCorsOriginAllowed,
+} from "../config/cors.js";
 import { buildPaginationMeta, getPagination } from "../utils/pagination.js";
 import {
   createPresignedVideoPlayback,
@@ -30,6 +34,30 @@ test("pagination caps huge limits and normalizes invalid pages", () => {
   assert.equal(pagination.page, 1);
   assert.equal(pagination.limit, 100);
   assert.equal(pagination.skip, 0);
+});
+
+test("cors allows both StackVerseHub frontend domains", () => {
+  const allowedOrigins = buildAllowedCorsOrigins({
+    CLIENT_URL: "https://stackversehub.in",
+    CLIENT_URLS: ["http://localhost:5173"],
+  });
+
+  assert.equal(
+    isCorsOriginAllowed("https://stackversehub.in", allowedOrigins),
+    true
+  );
+  assert.equal(
+    isCorsOriginAllowed("https://www.stackversehub.in", allowedOrigins),
+    true
+  );
+  assert.equal(
+    isCorsOriginAllowed("http://localhost:5173", allowedOrigins),
+    true
+  );
+  assert.equal(
+    isCorsOriginAllowed("https://evil.example", allowedOrigins),
+    false
+  );
 });
 
 test("video upload validation accepts supported video within size", () => {

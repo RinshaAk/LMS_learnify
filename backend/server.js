@@ -7,6 +7,10 @@ import mongoose from "mongoose";
 import { initializeSocket } from "./sockets/chatSocket.js";
 
 import { env } from "./config/env.config.js";
+import {
+  buildAllowedCorsOrigins,
+  isCorsOriginAllowed,
+} from "./config/cors.js";
 import connectDB from "./config/db.js";
 
 import {
@@ -51,6 +55,8 @@ httpServer.keepAliveTimeout = Number(process.env.HTTP_KEEP_ALIVE_TIMEOUT_MS || 1
 const io = initializeSocket(httpServer);
 app.set("io", io);
 
+const allowedCorsOrigins = buildAllowedCorsOrigins(env);
+
 // ================= MIDDLEWARE =================
 
 app.set("trust proxy", 1);
@@ -60,7 +66,13 @@ app.use(requestTimeout());
 
 app.use(
   cors({
-    origin: env.CLIENT_URL,
+    origin: (origin, callback) => {
+      if (isCorsOriginAllowed(origin, allowedCorsOrigins)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
   })
 );
