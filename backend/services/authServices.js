@@ -149,23 +149,24 @@ const removeOtpState = async (email) => {
 const buildOtpEmail = (otp) => ({
   subject: "Your StackVerseHub Verification Code",
   html: `
-    <div style="font-family:Arial,Helvetica,sans-serif;color:#0f172a;line-height:1.6;">
+    <div style="font-family:Arial,Helvetica,sans-serif;color:#0f172a;line-height:1.6;max-width:560px;margin:0 auto;padding:24px;">
+      <h1 style="font-size:20px;line-height:1.3;margin:0 0 16px;color:#0f172a;">Verify your StackVerseHub account</h1>
       <p>Hello,</p>
-      <p>We received a request to verify your email address for StackVerseHub.</p>
-      <p>Your verification code is:</p>
+      <p>We received a request to verify your email address for StackVerseHub registration.</p>
+      <p>Enter this verification code in the registration form:</p>
       <p style="font-size:28px;font-weight:700;letter-spacing:0.18em;color:#2563eb;margin:16px 0;">${otp}</p>
-      <p>This code will expire in 10 minutes. Please do not share it with anyone.</p>
-      <p>If you did not request this code, you can safely ignore this email.</p>
-      <p>Best regards,<br />StackVerseHub Team</p>
+      <p>This code will expire in 10 minutes. Please do not share it with anyone, including StackVerseHub support.</p>
+      <p>If you did not request this code, you can safely ignore this email. No account will be created unless this code is verified.</p>
+      <p style="margin-top:24px;">Best regards,<br />StackVerseHub Team</p>
     </div>
   `,
   text: [
     "Hello,",
-    "We received a request to verify your email address for StackVerseHub.",
-    "Your verification code is:",
+    "We received a request to verify your email address for StackVerseHub registration.",
+    "Enter this verification code in the registration form:",
     otp,
-    "This code will expire in 10 minutes. Please do not share it with anyone.",
-    "If you did not request this code, you can safely ignore this email.",
+    "This code will expire in 10 minutes. Please do not share it with anyone, including StackVerseHub support.",
+    "If you did not request this code, you can safely ignore this email. No account will be created unless this code is verified.",
     "Best regards,",
     "StackVerseHub Team",
   ].join("\n"),

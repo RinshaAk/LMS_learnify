@@ -1,11 +1,25 @@
 import cloudinary from "../config/cloudinary.js";
 
+const requireCloudinaryConfig = () => {
+  if (
+    !process.env.CLOUDINARY_CLOUD_NAME ||
+    !process.env.CLOUDINARY_API_KEY ||
+    !process.env.CLOUDINARY_API_SECRET
+  ) {
+    const error = new Error("Cloudinary upload is not configured");
+    error.statusCode = 503;
+    throw error;
+  }
+};
+
 export const uploadToCloudinary = async (
   fileBuffer,
   folder,
   resourceType = "auto",
   filename = null
 ) => {
+  requireCloudinaryConfig();
+
   return new Promise((resolve, reject) => {
     const options = {
       folder,

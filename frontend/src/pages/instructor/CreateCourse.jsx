@@ -37,6 +37,9 @@ import {
 } from '../../services/instructorCourseService';
 import adminService from '../../services/adminService';
 
+const THUMBNAIL_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const THUMBNAIL_MAX_SIZE = 5 * 1024 * 1024;
+
 const CreateCourse = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -146,21 +149,37 @@ const CreateCourse = () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Local preview
-    const reader = new FileReader();
-    reader.onloadend = () => setThumbnailPreview(reader.result);
-    reader.readAsDataURL(file);
+    if (!THUMBNAIL_TYPES.includes(file.type)) {
+      e.target.value = '';
+      toast.error("Please upload a JPG, PNG, or WEBP thumbnail.");
+      return;
+    }
+
+    if (file.size > THUMBNAIL_MAX_SIZE) {
+      e.target.value = '';
+      toast.error("Thumbnail must be 5 MB or smaller.");
+      return;
+    }
+
+    const previousPreview = thumbnailPreview;
 
     try {
       setUploadingThumbnail(true);
+      const reader = new FileReader();
+      reader.onloadend = () => setThumbnailPreview(reader.result);
+      reader.readAsDataURL(file);
+
       const result = await uploadThumbnail(file);
       setCourseData(prev => ({ ...prev, thumbnail: result.url }));
+      setThumbnailPreview(result.url);
       toast.success("Thumbnail uploaded!");
     } catch (error) {
       console.error("Thumbnail upload failed:", error);
-      toast.error("Failed to upload thumbnail.");
+      setThumbnailPreview(previousPreview);
+      toast.error(error.response?.data?.message || error.userMessage || "Failed to upload thumbnail.");
     } finally {
       setUploadingThumbnail(false);
+      e.target.value = '';
     }
   };
 
@@ -407,7 +426,7 @@ const CreateCourse = () => {
                   type="file"
                   id="thumbnail-upload"
                   className="hidden"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp"
                   onChange={handleThumbnailUpload}
                 />
                 <label

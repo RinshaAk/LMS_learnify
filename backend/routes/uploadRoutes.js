@@ -166,8 +166,8 @@ router.post(
     } catch (error) {
       console.error("Thumbnail Upload Error:", error.message);
 
-      return res.status(500).json({
-        message: "Upload failed",
+      return res.status(error.statusCode || 500).json({
+        message: error.statusCode ? error.message : "Thumbnail upload failed",
       });
     }
   }
@@ -200,8 +200,8 @@ router.post(
     } catch (error) {
       console.error("Profile Picture Upload Error:", error.message);
 
-      return res.status(500).json({
-        message: "Upload failed",
+      return res.status(error.statusCode || 500).json({
+        message: error.statusCode ? error.message : "Profile picture upload failed",
       });
     }
   }

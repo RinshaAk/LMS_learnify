@@ -1,5 +1,7 @@
 import nodemailer from "nodemailer";
 
+const APP_NAME = process.env.EMAIL_FROM_NAME?.trim() || "StackVerseHub";
+
 export class EmailDeliveryError extends Error {
   constructor(
     message = "Unable to send verification email. Please try again later."
@@ -42,6 +44,11 @@ const createTransporter = () => {
   });
 };
 
+const buildSender = (emailUser, fromName = APP_NAME) => ({
+  name: fromName,
+  address: emailUser,
+});
+
 export const sendEmail = async (
   to,
   subject,
@@ -62,14 +69,25 @@ export const sendEmail = async (
     }
 
     const transporter = createTransporter();
+    const from = buildSender(emailUser, options.fromName);
 
     const info = await transporter.sendMail({
-      from: `"StackVerseHub" <${emailUser}>`,
+      from,
+      sender: emailUser,
+      envelope: {
+        from: emailUser,
+        to: to.trim(),
+      },
       to: to.trim(),
       subject,
       html,
       ...(text ? { text } : {}),
-      ...(options.replyTo ? { replyTo: options.replyTo } : {}),
+      replyTo: options.replyTo || emailUser,
+      headers: {
+        "Auto-Submitted": "auto-generated",
+        "X-Auto-Response-Suppress": "All",
+        ...(options.headers || {}),
+      },
     });
 
     console.log(
