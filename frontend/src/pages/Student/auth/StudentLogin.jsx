@@ -11,6 +11,7 @@ import { useDispatch } from "react-redux";
 import { loginUser } from "../../../features/auth/authThunk";
 import { setCredentials } from "../../../features/auth/authSlice";
 import {
+  getGoogleAuthErrorMessage,
   getPortalMismatchMessage,
   getPostLoginPath,
 } from "../../../features/auth/loginFlow";
@@ -279,12 +280,15 @@ function Login() {
           navigate(nextPath);
 
         } catch (error) {
-          toast.error("Google login failed");
+          const errorMsg = getGoogleAuthErrorMessage(error);
+          toast.error(errorMsg);
+          setApiError(errorMsg);
           console.log("Google login error", error);
         }
       }}
       onError={() => {
         console.log("Google Login Failed");
+        setApiError("Google Login Failed");
       }}
     />
   ) : (

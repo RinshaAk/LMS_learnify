@@ -11,6 +11,7 @@ import { setCredentials } from "../../../features/auth/authSlice";
 import { GoogleLogin } from "@react-oauth/google";
 import axiosInstance from "../../../features/axiosInstance";
 import {
+  getGoogleAuthErrorMessage,
   getPortalMismatchMessage,
   getPostLoginPath,
 } from "../../../features/auth/loginFlow";
@@ -264,7 +265,7 @@ function AdminLogin() {
                   navigate(nextPath);
                 } catch (error) {
                   console.log("Google login error", error);
-                  setApiError("Google authentication failed.");
+                  setApiError(getGoogleAuthErrorMessage(error));
                 }
               }}
               onError={() => {

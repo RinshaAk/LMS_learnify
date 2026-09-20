@@ -9,8 +9,9 @@ import { sendEmail } from "../utils/sendEmail.js";
 import User from "../models/User.js";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
+import { env } from "../config/env.config.js";
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const client = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 
 // REGISTER
 export const register = asyncHandler(async (req, res) => {
@@ -84,14 +85,31 @@ const googleAuthFor = (portalRole) =>
   asyncHandler(async (req, res) => {
     const { token } = req.body;
 
+    if (!env.GOOGLE_CLIENT_ID) {
+      return res.status(500).json({
+        message: "Google authentication is not configured on the server.",
+        code: "GOOGLE_AUTH_NOT_CONFIGURED",
+      });
+    }
+
     if (!token) {
       return res.status(400).json({ message: "Google token is required" });
     }
 
-    const ticket = await client.verifyIdToken({
-      idToken: token,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
+    let ticket;
+
+    try {
+      ticket = await client.verifyIdToken({
+        idToken: token,
+        audience: env.GOOGLE_CLIENT_ID,
+      });
+    } catch (error) {
+      return res.status(401).json({
+        message:
+          "Google token verification failed. Check that frontend VITE_GOOGLE_CLIENT_ID matches backend GOOGLE_CLIENT_ID.",
+        code: "GOOGLE_TOKEN_VERIFICATION_FAILED",
+      });
+    }
 
     const payload = ticket.getPayload();
 

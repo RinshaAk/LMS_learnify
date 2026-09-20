@@ -10,6 +10,7 @@ import { toast } from 'react-hot-toast';
 import axiosInstance from "../../../features/axiosInstance";
 import { setCredentials } from "../../../features/auth/authSlice";
 import {
+  getGoogleAuthErrorMessage,
   getPortalMismatchMessage,
   getPostLoginPath,
 } from "../../../features/auth/loginFlow";
@@ -230,7 +231,7 @@ function InstructorLogin() {
                   navigate(nextPath);
                 } catch (error) {
                   console.log("Google login error", error);
-                  setApiError("Google authentication failed. Please try again.");
+                  setApiError(getGoogleAuthErrorMessage(error));
                 }
               }}
               onError={() => {

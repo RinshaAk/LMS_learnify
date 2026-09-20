@@ -21,6 +21,7 @@ export const env={
     MONGO_URL:
     process.env.MONGO_URL,
     JWT_SECRET:process.env.JWT_SECRET,
+    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     CLIENT_URL:process.env.CLIENT_URL,
     CLIENT_URLS: parseList(process.env.CLIENT_URLS),
     REDIS_URL:
