@@ -15,9 +15,10 @@ export const createOrder = async (req, res) => {
     res.status(200).json(result);
   } catch (error) {
     console.error("Create Order Error:", error);
-    res.status(400).json({
+    res.status(error.statusCode || error.status || 400).json({
       success: false,
       message: error.message,
+      code: error.code,
     });
   }
 };
@@ -33,9 +34,10 @@ export const verifyPayment = async (req, res) => {
 
     res.status(200).json(result);
   } catch (error) {
-    res.status(400).json({
+    res.status(error.statusCode || error.status || 400).json({
       success: false,
       message: error.message,
+      code: error.code,
     });
   }
 };
@@ -46,9 +48,10 @@ export const recordPaymentFailure = async (req, res) => {
     const result = await recordPaymentFailureService(req.body);
     res.status(200).json(result);
   } catch (error) {
-    res.status(400).json({
+    res.status(error.statusCode || error.status || 400).json({
       success: false,
       message: error.message,
+      code: error.code,
     });
   }
 };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { toast } from 'react-hot-toast';
-import { fetchAllCourses, enrollInCourse, fetchEnrolledCourses } from '../../features/courses/courseThunk';
+import { fetchAllCourses, fetchEnrolledCourses } from '../../features/courses/courseThunk';
 import {
   Star,
   Users,
@@ -109,7 +109,7 @@ const BuyCourses = () => {
         currency: order.currency,
         name: "StackVerseHub",
         description: `Enrolling in ${course.title}`,
-        image: "https://stackversehub.com/logo.png",
+        image: "https://stackversehub.in/logo.png",
         order_id: order.id,
         handler: async (response) => {
           try {
@@ -124,8 +124,9 @@ const BuyCourses = () => {
 
             if (verification.success) {
               toast.success('Payment Successful! Enrolling you now...');
-              await dispatch(enrollInCourse(selectedCourse._id));
+              await dispatch(fetchEnrolledCourses());
               setShowPayment(false);
+              setIsProcessing(false);
               navigate('/student/courses');
             } else {
               toast.error('Payment verification failed. Please contact support.');
@@ -234,7 +235,19 @@ const BuyCourses = () => {
 
   const availableInstructors = Object.values(instructors);
 
+  const isCourseEnrolled = (courseId) =>
+    enrolledCourses?.some((item) =>
+      item._id === courseId ||
+      item.course?._id === courseId ||
+      item.course === courseId
+    );
+
   const handleBuyClick = (course, instructor) => {
+    if (isCourseEnrolled(course._id)) {
+      navigate('/student/courses');
+      return;
+    }
+
     setSelectedCourse({ ...course, instructorName: instructor.name });
     setShowPayment(true);
   };
@@ -395,13 +408,23 @@ const BuyCourses = () => {
                     </div>
 
                     <div className="pt-2 mt-auto">
-                      <button
-                        onClick={() => handleBuyClick(course, instructor)}
-                        className="btn-primary w-full flex items-center justify-center gap-2 text-sm"
-                      >
-                        <ShoppingBag size={16} />
-                        Enroll Now
-                      </button>
+                      {isCourseEnrolled(course._id) ? (
+                        <button
+                          onClick={() => navigate('/student/courses')}
+                          className="w-full flex items-center justify-center gap-2 text-sm py-3 bg-green-600 text-white rounded font-bold hover:bg-green-700 transition-colors"
+                        >
+                          Go To My Courses
+                          <ChevronRight size={16} />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleBuyClick(course, instructor)}
+                          className="btn-primary w-full flex items-center justify-center gap-2 text-sm"
+                        >
+                          <ShoppingBag size={16} />
+                          Enroll Now
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

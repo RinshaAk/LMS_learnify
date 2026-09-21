@@ -22,12 +22,16 @@ export const createOrderService = async ({ courseId, userId }) => {
   const course = await Course.findById(courseId);
 
   if (!course) {
-    throw new Error("Course not found");
+    const error = new Error("Course not found");
+    error.statusCode = 404;
+    throw error;
   }
 
   // Ensure course is approved and published
   if (course.approvalStatus !== "approved" || course.status !== "published") {
-    throw new Error("This course is currently not available for purchase.");
+    const error = new Error("This course is currently not available for purchase.");
+    error.statusCode = 409;
+    throw error;
   }
 
   // Prevent duplicate enrollment
@@ -37,14 +41,18 @@ export const createOrderService = async ({ courseId, userId }) => {
   });
 
   if (alreadyEnrolled) {
-    throw new Error("You already enrolled in this course");
+    const error = new Error("You already enrolled in this course");
+    error.statusCode = 409;
+    throw error;
   }
 
   // Razorpay order options
   const amount = Math.round(course.price * 100);
   
   if (isNaN(amount) || amount <= 0) {
-    throw new Error(`Invalid course price: ${course.price}. Amount must be greater than zero.`);
+    const error = new Error(`Invalid course price: ${course.price}. Amount must be greater than zero.`);
+    error.statusCode = 400;
+    throw error;
   }
 
   const options = {
@@ -90,7 +98,9 @@ export const verifyPaymentService = async ({
 
   // Verify signature
   if (generatedSignature !== razorpay_signature) {
-    throw new Error("Invalid payment signature");
+    const error = new Error("Invalid payment signature");
+    error.statusCode = 400;
+    throw error;
   }
 
   // Find payment
@@ -99,7 +109,9 @@ export const verifyPaymentService = async ({
   });
 
   if (!payment) {
-    throw new Error("Payment record not found");
+    const error = new Error("Payment record not found");
+    error.statusCode = 404;
+    throw error;
   }
 
   // Update payment status
