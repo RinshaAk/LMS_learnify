@@ -15,6 +15,10 @@ import {
   getPortalMismatchMessage,
   getPostLoginPath,
 } from "../../../features/auth/loginFlow";
+import {
+  googleAuthNotConfiguredMessage,
+  isGoogleAuthConfigured,
+} from "../../../features/auth/googleAuthConfig";
 import axiosInstance from "../../../features/axiosInstance";
 import heroImage from "../../../assets/hero.png";
 
@@ -248,7 +252,11 @@ function Login() {
           </div>
 
 <div className="flex justify-center">
-  {isOnline ? (
+  {!isGoogleAuthConfigured() ? (
+    <div className="w-full max-w-[350px] px-6 py-4 text-center rounded-xl border border-amber-200 bg-amber-50 text-amber-700">
+      {googleAuthNotConfiguredMessage}
+    </div>
+  ) : isOnline ? (
     <GoogleLogin
       theme="outline"
       size="large"

@@ -20,6 +20,10 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom';
 import paymentService from '../../services/paymentService';
 import adminService from '../../services/adminService';
+import {
+  getRazorpayKeyId,
+  razorpayNotConfiguredMessage,
+} from '../../features/payments/razorpayConfig';
 
 const BuyCourses = () => {
   const dispatch = useDispatch();
@@ -80,6 +84,12 @@ const BuyCourses = () => {
     setIsProcessing(true);
     const loadingToast = toast.loading("Initializing payment...");
     try {
+      const razorpayKeyId = getRazorpayKeyId();
+
+      if (!razorpayKeyId) {
+        throw new Error(razorpayNotConfiguredMessage);
+      }
+
       if (!navigator.onLine) {
         throw new Error('No internet connection. Please connect and try again.');
       }
@@ -94,7 +104,7 @@ const BuyCourses = () => {
 
       // 2. Initialize Razorpay options
       const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+        key: razorpayKeyId,
         amount: order.amount,
         currency: order.currency,
         name: "StackVerseHub",
@@ -132,6 +142,11 @@ const BuyCourses = () => {
         theme: {
           color: "#2563eb",
         },
+        modal: {
+          ondismiss: () => {
+            setIsProcessing(false);
+          },
+        },
       };
 
       const rzp = new window.Razorpay(options);
@@ -140,6 +155,7 @@ const BuyCourses = () => {
         setFailureReason(response.error.description || "The transaction was cancelled or declined.");
         setShowFailureModal(true);
         setShowPayment(false);
+        setIsProcessing(false);
 
         try {
           await paymentService.recordPaymentFailure({
@@ -158,6 +174,7 @@ const BuyCourses = () => {
       toast.dismiss(loadingToast);
       console.error("Payment error:", err);
       toast.error(err.response?.data?.message || 'Failed to initiate payment. Please try again.');
+      setIsProcessing(false);
     } finally {
       // We don't set processing false here because Razorpay modal might still be open
       // or verification might be happening in the handler

@@ -3,9 +3,21 @@ import razorpay from "../config/razorpay.js";
 import Payment from "../models/Payment.js";
 import Course from "../models/Course.js";
 import Enrollment from "../models/Enrollment.js";
+import { env } from "../config/env.config.js";
+
+const assertRazorpayConfigured = () => {
+  if (!env.RAZORPAY_KEY_ID || !env.RAZORPAY_KEY_SECRET) {
+    const error = new Error("Razorpay is not configured on the server.");
+    error.statusCode = 500;
+    error.code = "RAZORPAY_NOT_CONFIGURED";
+    throw error;
+  }
+};
 
 // Create Razorpay Order
 export const createOrderService = async ({ courseId, userId }) => {
+  assertRazorpayConfigured();
+
   // Find course
   const course = await Course.findById(courseId);
 
@@ -68,9 +80,11 @@ export const verifyPaymentService = async ({
   courseId,
   userId,
 }) => {
+  assertRazorpayConfigured();
+
   // Generate signature
   const generatedSignature = crypto
-    .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+    .createHmac("sha256", env.RAZORPAY_KEY_SECRET)
     .update(`${razorpay_order_id}|${razorpay_payment_id}`)
     .digest("hex");
 

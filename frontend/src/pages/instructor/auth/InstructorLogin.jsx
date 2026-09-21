@@ -14,6 +14,10 @@ import {
   getPortalMismatchMessage,
   getPostLoginPath,
 } from "../../../features/auth/loginFlow";
+import {
+  googleAuthNotConfiguredMessage,
+  isGoogleAuthConfigured,
+} from "../../../features/auth/googleAuthConfig";
 
 function InstructorLogin() {
   const navigate = useNavigate();
@@ -209,36 +213,42 @@ function InstructorLogin() {
           </div>
 
           <div className="flex justify-center">
-            <GoogleLogin
-              theme="outline"
-              size="large"
-              shape="pill"
-              width="350"
-              onSuccess={async (response) => {
-                const token = response.credential;
-                try {
-                  const res = await axiosInstance.post("/auth/google/instructor", {
-                    token,
-                  });
-                  const user = res.data;
-                  const nextPath = getPostLoginPath(user, "instructor");
+            {!isGoogleAuthConfigured() ? (
+              <div className="w-full max-w-[350px] px-6 py-4 text-center rounded-xl border border-amber-200 bg-amber-50 text-amber-700">
+                {googleAuthNotConfiguredMessage}
+              </div>
+            ) : (
+              <GoogleLogin
+                theme="outline"
+                size="large"
+                shape="pill"
+                width="350"
+                onSuccess={async (response) => {
+                  const token = response.credential;
+                  try {
+                    const res = await axiosInstance.post("/auth/google/instructor", {
+                      token,
+                    });
+                    const user = res.data;
+                    const nextPath = getPostLoginPath(user, "instructor");
 
-                  if (!nextPath) {
-                    setApiError(getPortalMismatchMessage(user.role));
-                    return;
+                    if (!nextPath) {
+                      setApiError(getPortalMismatchMessage(user.role));
+                      return;
+                    }
+                    dispatch(setCredentials({ ...user, loginPortal: "instructor" }));
+                    navigate(nextPath);
+                  } catch (error) {
+                    console.log("Google login error", error);
+                    setApiError(getGoogleAuthErrorMessage(error));
                   }
-                  dispatch(setCredentials({ ...user, loginPortal: "instructor" }));
-                  navigate(nextPath);
-                } catch (error) {
-                  console.log("Google login error", error);
-                  setApiError(getGoogleAuthErrorMessage(error));
-                }
-              }}
-              onError={() => {
-                console.log("Google Login Failed");
-                setApiError("Google Login Failed");
-              }}
-            />
+                }}
+                onError={() => {
+                  console.log("Google Login Failed");
+                  setApiError("Google Login Failed");
+                }}
+              />
+            )}
           </div>
 
           <div className="text-center mt-10">

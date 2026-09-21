@@ -5,6 +5,10 @@ import { clearSelectedCourse } from "../../features/courses/courseSlice";
 import { fetchCourseById as fetchCourseThunk, fetchEnrolledCourses, verifyPaymentAndEnroll } from "../../features/courses/courseThunk";
 import paymentService from "../../services/paymentService";
 import {
+  getRazorpayKeyId,
+  razorpayNotConfiguredMessage,
+} from "../../features/payments/razorpayConfig";
+import {
   Star,
   Users,
   Clock,
@@ -59,6 +63,18 @@ const CourseDetails = () => {
       return;
     }
 
+    const razorpayKeyId = getRazorpayKeyId();
+
+    if (!razorpayKeyId) {
+      alert(razorpayNotConfiguredMessage);
+      return;
+    }
+
+    if (!window.Razorpay) {
+      alert("Razorpay checkout could not be loaded. Please refresh and try again.");
+      return;
+    }
+
     try {
       setPaymentLoading(true);
 
@@ -71,7 +87,7 @@ const CourseDetails = () => {
 
       // 2. Razorpay options
       const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+        key: razorpayKeyId,
         amount: data.order.amount,
         currency: "INR",
         name: "StackVerseHub",

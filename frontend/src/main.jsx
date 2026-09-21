@@ -9,6 +9,7 @@ import { PersistGate } from 'redux-persist/integration/react';
 import { GoogleOAuthProvider } from "@react-oauth/google"
 import { SocketProvider } from './context/SocketContext.jsx';
 import { CallProvider } from './context/CallContext.jsx';
+import { getGoogleClientId } from './features/auth/googleAuthConfig.js';
 
 const OnlineGoogleOAuthProvider = ({ children }) => {
   const [online, setOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
@@ -26,12 +27,14 @@ const OnlineGoogleOAuthProvider = ({ children }) => {
     };
   }, []);
 
-  if (!online) {
+  const googleClientId = getGoogleClientId();
+
+  if (!online || !googleClientId) {
     return <>{children}</>;
   }
 
   return (
-    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+    <GoogleOAuthProvider clientId={googleClientId}>
       {children}
     </GoogleOAuthProvider>
   );
