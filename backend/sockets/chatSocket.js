@@ -149,6 +149,7 @@ export const initializeSocket = (server) => {
     if (becameOnline) {
       emitOnlineUsers();
     }
+    socket.emit("getOnlineUsers", Array.from(userSocketMap.keys()));
 
     socket.on("join-room", (roomId) => {
       if (!guardSocketEvent(socket, "join-room") || !isSafeString(roomId)) {

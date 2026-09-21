@@ -312,7 +312,7 @@ const InstructorMessages = () => {
   const handleStartCall = () => {
     if (!selectedChat || !selectedContact || !socket) return;
 
-    if (!onlineUsers.includes(selectedChat)) {
+    if (!onlineUsers.map(String).includes(String(selectedChat))) {
       toast.error(`${selectedContact.name} is offline`);
       return;
     }

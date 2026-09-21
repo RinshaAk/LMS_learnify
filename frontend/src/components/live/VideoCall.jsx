@@ -3,6 +3,7 @@ import { useSelector } from "react-redux";
 import { useSocket } from "../../context/SocketContext.jsx";
 import { Mic, MicOff, Video, VideoOff, PhoneOff, Users } from "lucide-react";
 import toast from "react-hot-toast";
+import { getRtcIceServers } from "../../features/calls/rtcConfig";
 
 const VideoCall = ({ roomId: propRoomId, onEndCall }) => {
   const { user } = useSelector((state) => state.auth);
@@ -53,10 +54,7 @@ const VideoCall = ({ roomId: propRoomId, onEndCall }) => {
 
         // 2. Create Peer Connection
         peerConnection.current = new RTCPeerConnection({
-          iceServers: [
-            { urls: "stun:stun.l.google.com:19302" },
-            { urls: "stun:stun1.l.google.com:19302" },
-          ],
+          iceServers: getRtcIceServers(),
         });
 
         // 3. Add Local Tracks

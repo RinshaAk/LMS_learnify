@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Mic, MicOff, PhoneOff, Phone } from "lucide-react";
 import toast from "react-hot-toast";
+import { getRtcIceServers } from "../../features/calls/rtcConfig";
 
 const AudioCall = ({
   roomId,
@@ -84,10 +85,7 @@ const AudioCall = ({
 
         // 2. Create peer connection
         peerConnection.current = new RTCPeerConnection({
-          iceServers: [
-            { urls: "stun:stun.l.google.com:19302" },
-            { urls: "stun:stun1.l.google.com:19302" },
-          ],
+          iceServers: getRtcIceServers(),
         });
 
         // 3. Add local tracks
@@ -125,7 +123,11 @@ const AudioCall = ({
           if (state === "connected") {
             setIsConnected(true);
             toast.success("Voice connection established!");
-          } else if (state === "disconnected" || state === "failed") {
+          } else if (state === "failed") {
+            setIsConnected(false);
+            toast.error("Could not establish voice connection. A TURN server may be required for this network.");
+            onEndCall();
+          } else if (state === "disconnected") {
             setIsConnected(false);
             toast.error("Call connection lost");
             onEndCall();
